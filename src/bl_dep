@@ -1,0 +1,97 @@
+################################################################################
+#                                                                              #
+#   bl_dep:  bash library, dependency related functions                        #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_DEP_INCLUDED ]; then
+   BL_DEP_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+# No dependencies allowed!
+#
+# Explanation:
+# This file is included by all the other bash library files so we can exit
+# in a controlled manner if the most basic requirements (i.e. bash) aren't
+# met.
+
+### GLOBAL VARIABLES ###########################################################
+
+# nothing here
+
+### FUNCTIONS ##################################################################
+
+# Since we're also checking for the presence of bash we need to keep the
+# function definition posix-style here. What happens inside a function is
+# not required to be posix.
+
+bl_dep_check_pgm()
+{
+   local program=$1
+   which $program 1>/dev/null 2>&1
+
+   local rc=$?
+
+   case $rc in
+      0) : ;;   # ok!
+      1)
+         echo "[bl_dep_check] unresolved dependency/not in path: $program"
+         exit 1
+         ;;
+      2)
+         echo "[bl_dep_check] syntax error"
+         exit 1
+         ;;
+      127)      # 'which' couldn't be run
+         echo "[bl_dep_check] couldn't run 'which'"
+         exit 1
+         ;;
+      *)
+         echo "[bl_dep_check] unknown error: $rc"
+         exit 1
+         ;;
+   esac
+}
+
+bl_dep_check_func()
+{
+   declare -F $1 &>/dev/null && echo true || echo false
+}
+
+bl_dep_platform_func()
+{
+   local func_name=$1
+   local func_name_platform=$func_name.$(uname)
+
+   if   $(bl_dep_check_func $func_name_platform); then
+      $func_name_platform ${*:2}   # call platform specific function with args
+   elif $(bl_dep_check_func $func_name); then
+      $func_name ${*:2}   # meant for graceful error handling
+   else   # ungraceful error handling
+      echo "[bl_dep_platform_func] unsupported platform: $(uname)"
+      exit 1
+   fi
+}
+
+### RUN ########################################################################
+
+if   [ -z $BASH ]; then
+   echo "[bl_dep] This scripts needs 'bash' to run."
+   exit 1
+elif [ ! -z $POSIXLY_CORRECT ]; then
+   echo "[bl_dep] This script cannot run in bash's posix-only mode."
+   exit 1
+elif [ ${BASH_VERSINFO[0]} -lt 4 ]; then
+   echo "[bl_dep] This script needs at least version 4 of 'bash'."
+   exit 1
+fi
+
+bl_dep_check_pgm uname

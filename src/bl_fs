@@ -1,0 +1,256 @@
+################################################################################
+#                                                                              #
+#   bl_fs:  bash library, filesystem functions                                 #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_FS_INCLUDED ]; then
+   BL_FS_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_fs_base
+source $BL_SRC/bl_time
+source $BL_SRC/bl_str
+source $BL_SRC/bl_log
+source $BL_SRC/bl_exit_base
+
+### GLOBAL VARIABLES ###########################################################
+
+if [ "$BL_FS_TMP_DIR" = "$BL_FS_TMP_BASE_DIR" ]; then
+   BL_FS_TMP_DIR=$BL_FS_TMP_BASE_DIR/$BL_FS_MYSELF_NAME.$$.tmp
+fi
+
+BL_FS_MYSELF_DIR=
+
+BL_FS_TMP_COUNT=1
+
+### FUNCTIONS ##################################################################
+
+shopt -s expand_aliases
+
+function bl_fs_new_tempfile
+{
+   local directory=$1
+
+   if $(bl_str_is_empty $directory); then
+      if [ "$BL_FS_TMP_DIR" = "$BL_FS_TMP_BASE_DIR" ]; then
+         echo "$BL_FS_TMP_DIR/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
+      else
+         echo "$BL_FS_TMP_DIR/$(bl_time_get nano)"
+      fi
+   else
+      echo "$directory/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
+   fi
+}
+
+alias bl_fs_get_name='readlink -f'
+
+function bl_fs_get_filename_fq
+{
+   local filename=$(bl_fs_get_name $1)
+
+   if [ -f $filename ]; then
+      echo $filename
+   else
+      bl_log_e "file doesn't exist: $filename"
+      echo ""
+   fi
+}
+
+function bl_fs_get_filename
+{
+#  This is the  easiest and safest way to do it. But it works only with
+#  existing files (due to how 'bl_fs_get_filename_fq' works).
+#  Drawback: works only on existing files.
+#   local file=$(bl_fs_get_name $1)
+#   echo ${file##*/}
+
+#  Using only string manipulation.
+   local filename=${1##*/}
+   echo $filename
+#
+}
+
+function bl_fs_get_filename_base
+{
+   local filename=$(bl_fs_get_filename $1)
+   echo ${filename%.*}   # filename without (the last) suffix
+}
+
+# deprecated
+# reason: naming-style (think of bl_fs_get_filename_base and bl_fs_get_filename_suffix
+# instead of bl_fs_getfilename_noext and bl_fs_get_filename_suffix
+function bl_fs_get_filename_noext
+{
+   local filename=$(bl_fs_get_filename $1)
+   echo ${filename%.*}   # filename without (the last) suffix
+}
+
+function bl_fs_get_dirname_fq
+{
+   local dirname=$(bl_fs_get_name $1)
+
+#  check if we need to cut off the filename
+   if [ -f $dirname ] || [ ! -d $dirname ]; then
+#     yes: cut off the filename
+      echo ${dirname%/*}
+   else
+#     no: we're good
+      echo $dirname
+   fi
+}
+
+function bl_fs_get_dirname
+{
+   local dirname=$(bl_fs_get_name $1)
+
+   if [ "$dirname"  = "/" ]; then
+      echo $dirname
+   else
+      echo ${dirname##*/}
+   fi
+}
+
+function bl_fs_get_size
+{
+   local file=$1
+   
+   local size=$(stat -c %s $file 2>&1)
+   local rc=$?
+
+   if [ $rc -ne 0 ]; then   # stat unsuccessful?
+      bl_log_e "failed to stat: $file"
+      size=0
+   fi
+
+   echo $size
+}
+
+function bl_fs_is_file_writable
+{
+   local file=$1
+
+   if [ -f $file ]; then
+      local file_exists=true
+   else
+      local file_exists=false
+   fi
+
+   touch $file 1>/dev/null 2>&1
+   local rc=$?
+
+   if [ $rc -eq 0 ]; then
+      if ! $file_exists; then
+#        If we've been checking "theoretically" - i.e. checking a file that didn't
+#        exist prior to this check - we clean up afterwards.
+         rm $file
+      fi
+
+      echo true
+   else
+      echo false
+   fi
+}
+
+function bl_fs_is_dir_writable
+{
+   local directory=$1
+
+   if [ -d $directory ]; then
+      local file=$(bl_fs_new_tempfile $directory)
+
+      bl_fs_is_file_writable $file
+
+#     Do we really need to be that exhaustive?
+#
+#      echo "Can I write to $directory?" > $file 2>&1
+#      local rc=$?
+#
+#      if [ $rc -eq 0 ] && [ $(bl_fs_get_size $file) -ne 0 ]; then
+#         rm $file
+#         echo true
+#      else
+#         echo false
+#      fi
+   else
+      echo false
+   fi
+}
+
+function bl_fs_get_lines
+{
+   local file=$1
+   
+   echo $(cat $file | wc -l)
+}
+
+#function bl_fs_get_md5
+#{
+#   local file=$1
+#
+#   local md5=$(md5sum $file)
+#   echo ${md5:1:32}
+#}
+
+function bl_fs_keep_recent
+{
+   local file_pattern=$1
+   local count=$2
+   
+   ((count++))
+
+   find $file_pattern | sort -r | tail -n +$count | while read file; do
+      bl_log_d "removing: $file"
+      rm $file
+   done
+}
+
+function bl_fs_cleanup_tmp
+{
+#  get all files including hidden ones
+   files=$(shopt -s nullglob; shopt -s dotglob; echo $BL_FS_TMP_DIR/*)
+
+   if [ ${#files[@]} -eq 0 ]; then
+#     if no files returned, remove our temporary directory
+      rmdir $BL_FS_TMP_DIR 1>/dev/null 2>&1
+   fi
+}
+
+
+### RUN ########################################################################
+
+#bl_dep_check md5sum
+bl_dep_check_pgm readlink
+bl_dep_check_pgm stat
+bl_dep_check_pgm cat
+bl_dep_check_pgm wc
+bl_dep_check_pgm find
+bl_dep_check_pgm sort
+bl_dep_check_pgm tail
+bl_dep_check_pgm dirname
+
+BL_FS_MYSELF_DIR=$(dirname $(readlink -f $0)) 
+
+if   [ ! -d $BL_FS_TMP_DIR ]; then
+   mkdir -p $BL_FS_TMP_DIR 1>/dev/null 2>&1
+
+   if [ $? -eq 0 ]; then
+      :
+      #bl_exit_func_add bl_fs_cleanup_tmp
+   else
+      bl_log_ee "unable to create temporary directory: $BL_FS_TMP_DIR"
+      exit 1
+   fi
+elif ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
+   bl_log_ee "directory for temporary files not writable: $BL_FS_TMP_DIR"
+   exit 1
+fi

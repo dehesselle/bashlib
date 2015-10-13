@@ -1,0 +1,117 @@
+################################################################################
+#                                                                              #
+#   bl_pld:  bash library, payload functions                                   #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_PLD_INCLUDED ]; then
+   BL_PLD_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_str
+source $BL_SRC/bl_fs
+source $BL_SRC/bl_log
+
+### GLOBAL VARIABLES ###########################################################
+
+# This regex describes how the payload header has to look like to be recognized
+# as such, with one additional tweak: it actually only looks like 
+# "###PAYLOADn###", but we'll be instructing grep to prepend found matches
+# with the line number ('-n' option, see below), so we have to account for that
+# as well.
+BL_PLD_HEADER_REGEX="([0-9]+):###PAYLOAD([0-9]+)###"
+
+declare -a BL_PLD_BEGIN   # a payload's first line no.
+declare -a BL_PLD_END     # a payload's last line no.
+
+### FUNCTIONS ##################################################################
+
+# bl_pld_find <file>
+#
+# file     name of the file to parse for payload
+#
+# This function parses a file for payload. It recognizes payload by its
+# header which has to look like 'BL_PLD_HEADER_REGEX' describes it.
+# The numbers of the first and last line of each payload will be stored
+# in the 'BL_PLD_BEGIN' and 'BL_PLD_END' arrays. 
+#
+function bl_pld_find
+{
+   local file=$1
+
+   if $(bl_str_is_empty $file); then
+      file=$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME
+   fi
+
+   local index=0         # index of currenct payload
+   local index_prev=0    # index of previous payload
+
+   while IFS= read -r line; do
+      if [[ $line =~ $BL_PLD_HEADER_REGEX ]]; then
+
+         index=${BASH_REMATCH[2]}
+         BL_PLD_BEGIN[$index]=$(( ${BASH_REMATCH[1]} + 1 ))
+
+         if [ $index_prev -ne 0 ]; then   # This is not the first payload?
+#           We determine the length of a payload as header-to-header. The
+#           start of the next payload marks the end of the previous one.
+            BL_PLD_END[$index_prev]=$(( ${BL_PLD_BEGIN[$index]} - 2 ))
+         fi
+
+         index_prev=$index
+      fi
+   done < <(grep -n "[#]##PAYLOAD" $file)   # need to avoid subshell
+
+#  The end of the last payload is the end of the file.
+   BL_PLD_END[$index]=$(cat $file | wc -l)   # lines total
+
+   if [ $index -eq 0 ]; then
+      bl_log_i "no payload found"
+   else
+      bl_log_i "payload found"
+   fi
+}
+
+# bl_pld_extract <payload> <target> <source>
+#
+# payload     the number of the payload to extract
+# target      the file that the extracted payload is written to
+# source      the file that the payload is extracted from
+#
+# This function copies a payload from the source file to a target file.
+# It reads the number of the first and last line of a payload from the
+# 'BL_PLD_BEGIN' and 'BL_PLD_END' arrays.
+#
+function bl_pld_extract
+{
+   local payload_no=$1
+   local file_target=$2
+   local file_source=$3
+
+   if $(bl_str_is_empty $file_source); then
+      file_source=$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME
+   fi
+
+   bl_log_d "sed -n \"${BL_PLD_BEGIN[$payload_no]},${BL_PLD_END[$payload_no]}p\""
+
+   sed -n "${BL_PLD_BEGIN[$payload_no]},${BL_PLD_END[$payload_no]}p" \
+$file_source > $file_target
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm sed
+bl_dep_check_pgm wc
+bl_dep_check_pgm cat
+bl_dep_check_pgm grep
+
+bl_pld_find

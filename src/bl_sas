@@ -1,0 +1,287 @@
+################################################################################
+#                                                                              #
+#   bl_sas:  bash library, sas functions                                       #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_SAS_INCLUDED ]; then
+   BL_SAS_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_log
+source $BL_SRC/bl_str
+source $BL_SRC/bl_ini
+source $BL_SRC/bl_fs
+source $BL_SRC/bl_run_base
+
+### GLOBAL VARIABLES ###########################################################
+
+if [ -z $BL_SAS_HOME ]; then
+   BL_SAS_HOME=/opt/sas
+fi
+
+if [ -z $BL_SAS_VERSION ]; then
+   BL_SAS_VERSION=9.4
+fi
+
+if [ -z $BL_SAS_ROOT ]; then
+   BL_SAS_ROOT=$BL_SAS_HOME/SASFoundation/$BL_SAS_VERSION
+fi
+
+if [ -z $BL_SAS_CONFIG ]; then
+#  there's no way to guess a sane default
+   BL_SAS_CONFIG=
+fi
+   
+if [ -z $BL_SAS_APPCONTEXT ]; then
+   BL_SAS_APPCONTEXT=SASApp
+fi
+
+### FUNCTIONS ##################################################################
+
+function bl_sas_exec_batch
+{
+   local pgm=$1
+   local log=$2
+   local log_opt=$3
+
+   if $(bl_str_is_empty $BL_SAS_CONFIG); then
+      bl_log_e "you need to set 'BL_SAS_CONFIG'"
+      return 1
+   fi
+
+   local cmd="$BL_SAS_CONFIG/$BL_SAS_APPCONTEXT/BatchServer/sasbatch.sh \
+-xcmd -batch -noterminal"
+
+   bl_sas_exec "$cmd" $pgm $log "$log_opt"
+
+   return $?
+}
+
+function bl_sas_exec_base
+{
+   local pgm=$1
+   local log=$2
+   local log_opt=$3
+   local print=$4
+
+   bl_sas_exec "$BL_SAS_ROOT/sas" $pgm $log "$log_opt" $print
+
+   return $?
+}
+
+function bl_sas_exec_base_u8
+{
+   local pgm=$1
+   local log=$2
+   local log_opt=$3
+   local print=$4
+
+   bl_sas_exec "$BL_SAS_ROOT/bin/sas_u8" $pgm $log "$log_opt" $print
+
+   return $?
+}
+
+function bl_sas_exec
+{
+   local cmd=$1
+   local pgm=$2
+   local log=$3
+   local log_opt=$4
+   local print=$5
+
+   if ! $(bl_str_is_empty $log_opt); then
+      log_opt="-logparm \"$log_opt\""
+   fi
+
+   if $(bl_str_is_empty $sas_print); then
+      sas_print=/dev/null
+   fi
+
+   cmd="$cmd $log_opt -log $log -print $print -sysin $pgm"
+
+   bl_run $cmd
+   local rc=$?
+
+#  We need to scan the log for errors and warnings regardless of the returncode.
+#  It is possible to get an "rc=0" despite having errors in the log.
+
+   local err_count=$(bl_sas_get_err_count $log)
+   local warn_count=$(bl_sas_get_warn_count $log)
+
+   if [ $rc -eq 0 ]; then
+      if [ $err_count -eq 0 ]; then
+         if [ $warn_count -eq 0 ]; then
+            bl_log_i "success (rc=$rc): $pgm"
+         else
+            bl_log_w "tainted (rc=$rc): $pgm finished with \
+$warn_count warning(s)" 
+         fi
+      else
+         bl_log_e "failure (rc=$rc): $pgm finished with \
+$err_count error(s), $warn_count warning(s)"
+      fi
+   else
+      bl_log_e "failure (rc=$rc): $sas_pgm finished with \
+$err_count errors, $warn_count warnings"
+   fi
+
+   return $rc
+}
+
+function bl_sas_get_warn_count
+{
+   local log=$1
+   echo $(grep -e "^WARNING: .*" $log | wc -l)
+}
+
+function bl_sas_get_err_count
+{
+   local log=$1
+   echo $(grep -e "^ERROR: .*" $log | wc -l)
+}
+
+function bl_sas_export_object
+{
+   local ini_file=$1
+   local meta_type=$2
+   local meta_obj=$3
+   local pkg_name=$4
+
+   if $(bl_str_is_empty $pkg_name); then
+      pkg_name=${meta_type}
+   fi
+
+   local target_dir=$(bl_fs_new_tempfile)
+   mkdir $target_dir 1>>$BL_LOG_FILE 2>&1
+
+   local cmd=$target_dir/E_$pkg_name.sh
+
+   $(bl_ini_read $ini_file; echo -e "\
+#!/bin/bash
+$BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ExportPackage \\
+-subprop \\
+-host $(bl_ini_get sas.metaserver) \\
+-port $(bl_ini_get sas.metaport) \\
+-user $(bl_ini_get sas.metauser) \\
+-password $(bl_ini_get sas.metapass) \\
+-package $target_dir/$pkg_name \\
+-log $target_dir/E_$pkg_name.log \\
+-types \"$meta_type\" \\
+-objects \\" > $cmd
+   for obj in $meta_obj; do
+      echo "\"$obj\" \\" >> $cmd
+   done
+   echo -e "\
+1>$target_dir/E_$pkg_name.stdout \\
+2>$target_dir/E_$pkg_name.stderr
+exit \$?" >> $cmd)
+
+   chmod 755 $cmd 1>>$BL_LOG_FILE 2>&1
+   
+   bl_run_nolog $cmd
+   local rc=$?
+
+   if [ $rc -eq 0 ]; then
+      bl_log_i "export successful: $pkg_name"
+   else
+      bl_log_e "export failed with rc=$rc"
+   fi
+
+   echo $target_dir
+   return $rc
+}
+
+function bl_sas_import_package
+{
+   local ini_file=$1
+   local source_dir=$2
+   local meta_folder=$3
+   local pkg_name=$4 
+
+   if $(bl_str_is_empty $pkg_name); then
+      pkg_name=${meta_type}
+   fi
+   
+   local cmd=$source_dir/I_$pkg_name.sh
+
+#  unused options: '-newOnly', '-includeACL'
+
+   $(bl_ini_read $ini_file; echo -e "\
+#!/bin/bash
+$BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ImportPackage \\
+-target \"$meta_folder\" \\
+-preservePaths \\
+-subprop $source_dir/$pkg_name.subprop \\
+-host $(bl_ini_get sas.metaserver) \\
+-port $(bl_ini_get sas.metaport) \\
+-user $(bl_ini_get sas.metauser) \\
+-password $(bl_ini_get sas.metapass) \\
+-package $source_dir/$pkg_name \\
+-log $source_dir/I_$pkg_name.log \\
+1>$source_dir/I_$pkg_name.stdout \\
+2>$source_dir/I_$pkg_name.stderr
+exit \$?" >> $cmd)
+
+   chmod 755 $cmd 1>>$BL_LOG_FILE 2>&1
+   
+   bl_run_nolog $cmd
+   local rc=$?
+
+   if [ $rc -eq 0 ]; then
+      bl_log_i "import successful: $pkg_name"
+      echo $source_dir
+   else
+      bl_log_e "import failed with rc=$rc"
+   fi
+}
+
+function bl_sas_compare
+{
+   local file1=$1
+   local file2=$2
+
+   local pgm=$(bl_fs_new_tempfile)
+
+   echo -e "\
+libname lib1 \"$(bl_fs_get_dirname_fq $file1)\";\n\
+libname lib2 \"$(bl_fs_get_dirname_fq $file2)\";\n\
+\n\
+proc compare base=lib1.$(bl_fs_get_filename $file1)\n\
+          compare=lib2.$(bl_fs_get_filename $file2)\n\
+          noprint;\n\
+run;\n\
+\n\
+%put SYSINFO=&SYSINFO.;\n\
+" > $pgm
+
+   local log=$(bl_fs_new_tempfile)
+
+   bl_sas_exec_base_u8 $pgm $log
+
+   #bl_exit_on_rc
+
+   rm $pgm
+
+   if [ $(grep "SYSINFO=0" $log | wc -l) -eq 1 ]; then
+      rm $log
+      echo true
+   else
+      rm $log
+      echo false
+   fi
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm grep
+bl_dep_check_pgm wc

@@ -1,0 +1,61 @@
+################################################################################
+#                                                                              #
+#   bl_exit:  bash library, "trap on exit" functionality                       #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_EXIT_INCLUDED ]; then
+   BL_EXIT_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+# No "heavy" dependencies allowed!
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_exit_base
+source $BL_SRC/bl_log
+
+### GLOBAL VARIABLES ###########################################################
+
+BL_EXIT_RC=0
+
+### FUNCTIONS ##################################################################
+
+# enable alias expansion
+shopt -s expand_aliases
+
+alias bl_exit_now='bl_log_ee "aborting in line $LINENO"; exit 16'
+
+alias bl_exit_if_not_root='\
+if [ $UID -ne 0 ]; then \
+   bl_log_ee "This script must be run as root."; \
+   bl_exit_now; \
+fi'
+
+function bl_exit_if_not_platform
+{
+   local found=false
+   local uname=$(uname)
+
+   for platform in "$@"; do
+      if [ "$uname" = "$platform" ]; then
+         found=true
+         break
+      fi
+   done
+
+   if ! $found; then
+      bl_log_ee "platform '$uname' not supported"
+      bl_exit_now
+   fi
+}
+
+### RUN ########################################################################
+
+# nothing here

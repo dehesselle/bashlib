@@ -1,0 +1,159 @@
+################################################################################
+#                                                                              #
+#   bl_log:  bash library, logging functions                                   #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_LOG_INCLUDED ]; then
+   BL_LOG_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_fs_base
+source $BL_SRC/bl_exit_base
+source $BL_SRC/bl_time
+source $BL_SRC/bl_release
+source $BL_SRC/bl_ui
+
+### GLOBAL VARIABLES ###########################################################
+
+if [ -z $BL_LOG_DEBUG_ENABLE ]; then
+   BL_LOG_DEBUG_ENABLE=false
+fi
+
+if [ -z $BL_LOG_DIR ]; then
+   BL_LOG_DIR=/tmp
+fi
+
+if [ -z $BL_LOG_FILE_NAME ]; then
+   BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME.log
+fi
+
+if [ -z $BL_LOG_FILE ]; then
+   BL_LOG_FILE=$BL_LOG_DIR/$BL_LOG_FILE_NAME
+fi
+
+BL_LOG_USER=$(whoami)
+
+### FUNCTIONS ##################################################################
+
+function bl_log_level_to_str
+{
+   local level=$1
+
+   if   [ "$level" = "E" ]; then
+      echo "$(bl_ui_bcol red error)"
+   elif [ "$level" = "W" ]; then
+      echo "$(bl_ui_bcol yellow warning)"
+   elif [ "$level" = "I" ]; then
+      echo "$(bl_ui_bcol green info)"
+   elif [ "$level" = "D" ]; then
+      echo "$(bl_ui_bcol cyan debug)"
+   fi
+}
+
+# enable alias expansion
+shopt -s expand_aliases
+
+# bl_log_write <function> <echo> <file> <level> <message>
+#
+# function     name of the function that is logging
+# echo         write to stdout {true|false}
+# file         file to write message to
+# level        log level {D|I|W|E}
+# message      the message you want to log
+#
+function bl_log_write
+{
+#   local pid=$$
+#   if [ $$ -ne $BASHPID ]; then
+#      local pid="$pid|$BASHPID"   # for subshells: parent|child
+#   fi
+
+#  log format is "<timestamp> <level> <pid> [<function name>] <message>", e.g.
+#
+#  20150228-131012 I 1234 [myFunc] This is just an example.
+#
+   if [ "${1:0:1}" = "[" ]; then   # Is there a function name?
+   
+      if [ "${1:1:1}" = "]" ]; then   # Function name empty?
+         if $2; then
+            echo -e "$(bl_log_level_to_str $4) ${*:5}"
+            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_remove_col ${*:5})" >> $3
+         else
+            echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
+         fi
+      else
+         if $2; then
+            echo -e "$(bl_log_level_to_str $4) $1 ${*:5}"
+            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_remove_col ${*:5})" >> $3
+         else
+            echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
+         fi
+      fi
+   else
+      if $1; then
+         echo -e "$(bl_log_level_to_str $3) ${*:4}"
+         echo "$(bl_time_get log) $3 $$ $(bl_ui_remove_col ${*:4})" >> $2
+      else
+         echo "$(bl_time_get log) $3 $$ ${*:4}" >> $2
+      fi
+   fi
+}
+
+alias bl_log_d='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE D'
+alias bl_log_i='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE I'
+alias bl_log_w='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE W'
+alias bl_log_e='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE E'
+alias bl_log_dd='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE D'
+alias bl_log_ii='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE I'
+alias bl_log_ww='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE W'
+alias bl_log_ee='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE E'
+
+function bl_log_on_exit
+{
+#  We do not use 'bl_log_i' here because we want to avoid the function
+#  name being printed in the log. The "end of log"/last message in the
+#  log is supposed to look like the "begin of log"/first message.
+#  See the "RUN" section below.
+   bl_log_write false $BL_LOG_FILE I "****END**** $BL_RELEASE_VERSION, \
+$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, $BL_LOG_USER"
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm whoami
+
+echo "$(bl_time_get log) I $$ ***BEGIN*** $BL_RELEASE_VERSION, \
+$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, $BL_LOG_USER" >> $BL_LOG_FILE
+
+if [ $? -eq 0 ]; then
+   bl_exit_func_add_back bl_log_on_exit   # "end of log" as last message
+
+   if ! $BL_LOG_DEBUG_ENABLE; then
+#     Disable all debug logging by turning statements into comments.
+#     Prepend a no-op in case it's the only statement in an if-clause.
+      alias bl_log_d=': #'
+      alias bl_log_dd=': #'
+   fi
+else   # logfile not writable
+   echo "$(bl_time_get log) E [$BL_FS_MYSELF_NAME] logging disabled, \
+not writable: $BL_LOG_FILE"
+#  See comment above.
+   alias bl_log_d=': #'
+   alias bl_log_i=': #'
+   alias bl_log_w=': #'
+   alias bl_log_e=': #'
+   alias bl_log_dd='echo '
+   alias bl_log_ii='echo '
+   alias bl_log_ww='echo '
+   alias bl_log_ee='echo '
+fi

@@ -1,0 +1,209 @@
+################################################################################
+#                                                                              #
+#   bl_dmn:  bash library, functions for daemons                               #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_DMN_INCLUDED ]; then
+   BL_DMN_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_log
+source $BL_SRC/bl_str
+source $BL_SRC/bl_fs
+source $BL_SRC/bl_exit
+source $BL_SRC/bl_ui
+
+### GLOBAL VARIABLES ###########################################################
+
+if [ -z $BL_DMN_PID_DIR ]; then
+   BL_DMN_PID_DIR=$BL_FS_TMP_DIR
+fi
+
+BL_DMN_PIDFILE=$BL_DMN_PID_DIR/$BL_FS_MYSELF_NAME.pid
+
+### FUNCTIONS ##################################################################
+
+# get pid based on pidfile
+function bl_dmn_get_pid
+{
+#  provide the means for a custom function
+   if $(bl_dep_check_func daemon_get_pid); then
+      echo $(daemon_get_pid)
+   else
+      if [ -f $BL_DMN_PIDFILE ]; then
+         local pid=$(cat $BL_DMN_PIDFILE)
+
+         if [ $(ps -p $pid | wc -l) -eq 2 ]; then
+            echo $pid   # ok
+         else
+            bl_log_d "pidfile: $pid"
+            echo -1   # process not found
+         fi
+      else
+         echo -2   # no pidfile
+      fi
+   fi
+}
+
+function bl_dmn_del_pidfile
+{
+   if [ -f $BL_DMN_PIDFILE ]; then
+      rm $BL_DMN_PIDFILE 1>>$BL_LOG_FILE 2>&1
+   else
+      bl_log_e "file not found: $BL_DMN_PIDFILE"
+   fi
+}
+
+function bl_daemon_run
+{
+   local parameter=$1
+
+   bl_log_d "calling 'daemon_run'"
+   daemon_run $parameter
+
+   bl_log_i "shutting down"
+   rm $BL_DMN_PIDFILE 1>>$BL_LOG_FILE 2>&1
+}
+
+function bl_dmn_start
+{
+   local parameter=$1
+
+#  We're purposefully checking for 'daemon_run' but calling 'bl_daemon_run'
+#  instead.
+   if $(bl_dep_check_func daemon_run); then
+      bl_daemon_run $parameter &
+
+#     We purposefully write the pid to file, sleep and use 'bl_dmn_get_pid'
+#     to retrieve it to catch early "failed on start" errors.
+      echo $! > $BL_DMN_PIDFILE
+      sleep 1
+      local pid=$(bl_dmn_get_pid)
+
+      if [ $pid -gt 0 ]; then
+         bl_log_ii "backgrounded $BL_FS_MYSELF_NAME as pid \
+$(bl_ui_col purple $(bl_dmn_get_pid))"
+      else
+         bl_log_ee "failed to start $BL_FS_MYSELF_NAME"
+         BL_EXIT_RC=1
+      fi
+   else
+      bl_log_ee "function not implemented: $command"
+      BL_EXIT_RC=1
+   fi
+}
+
+function bl_dmn_stop
+{
+   local pid=$(bl_dmn_get_pid)
+
+   if [ $pid -gt 0 ]; then
+      bl_log_ii "stopping pid $(bl_ui_col purple $pid)"
+      kill -TERM $pid
+
+      bl_dmn_del_pidfile
+   else
+      bl_log_ii "nothing to stop"
+   fi
+}
+
+function bl_dmn_status
+{
+   local pid=$(bl_dmn_get_pid)
+
+   case $pid in
+      -1) bl_log_ww "process seems to have died"                        ;;
+      -2) bl_log_ii "process is not running"                            ;;
+       *) bl_log_ii "process is running (pid $(bl_ui_col purple $pid))" ;;
+   esac
+}
+
+function bl_dmn_print_usage
+{
+   bl_log_ii "usage: $0 {start|stop|restart|status}"
+}
+
+function bl_dmn_dispatch
+{
+   local command=$1
+   local parameter=$2
+
+   if [ $# -gt 2 ]; then
+      bl_log_w "only processing first two arguments"
+   fi
+
+   bl_log_i "command: $command"
+
+   if ! $(bl_str_is_empty $parameter); then
+      bl_log_i "parameter: $parameter"
+   fi
+
+   case "$command" in
+      start)
+         local pid=$(bl_dmn_get_pid)
+         case $pid in
+            -1) 
+               bl_log_w "previously unclean exit (stale pidfile)"
+               bl_dmn_start $parameter
+               ;;
+            -2)   # ok
+               bl_dmn_start $parameter
+               ;;
+             *)
+               bl_log_ii "$BL_FS_MYSELF_NAME already running \
+(pid $(bl_ui_col purple $pid))"
+               BL_EXIT_RC=1
+               ;;
+         esac
+         ;;
+      stop|status)
+         if $(bl_dep_check_func daemon_$command); then
+            daemon_$command $parameter
+         else
+            bl_dmn_$command
+         fi
+         ;;
+      restart)
+         if $(bl_dep_check_func daemon_stop); then
+            daemon_stop $parameter
+         else
+            bl_dmn_stop
+         fi
+         sleep 1
+         bl_dmn_start $parameter
+         ;;
+      *)
+         if $(bl_dep_check_func daemon_print_usage); then
+            daemon_print_usage
+         else
+            bl_dmn_print_usage
+         fi
+         BL_EXIT_RC=1
+         ;;
+   esac
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm awk
+bl_dep_check_pgm cat
+bl_dep_check_pgm grep
+bl_dep_check_pgm kill
+bl_dep_check_pgm ps
+bl_dep_check_pgm sleep
+bl_dep_check_pgm wc
+
+if ! $(bl_fs_is_dir_writable $BL_DMN_PID_DIR); then
+   bl_log_ee "not writable: $BL_DMN_PID_DIR"
+   exit 1
+fi

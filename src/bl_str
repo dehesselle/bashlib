@@ -1,0 +1,107 @@
+################################################################################
+#                                                                              #
+#   bl_str:  bash library, string related functions                            #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_STR_INCLUDED ]; then
+   BL_STR_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+
+### GLOBAL VARIABLES ###########################################################
+
+# nothing here yet
+
+### FUNCTIONS ##################################################################
+
+function bl_str_get_char_count
+{
+   local string=$1
+   local character=$2
+
+# use parameter expansion/string substitution to count the characters
+   local count=${string//[^$character]}
+# length of the remaining characters is what we're looking for
+   count=${#count}
+
+   echo $count
+}
+
+function bl_str_is_empty
+{
+   local string=$1
+    
+   if [ ${#string} -eq 0 ]; then
+      echo true
+   else
+      echo false
+   fi
+}
+
+function bl_str_mask_after
+{
+   local text=$1
+   local keyword=$2
+
+   if [[ "$text" =~ (.*)( $keyword )([^\ ]+)(.*) ]]; then
+      local textMasked="${BASH_REMATCH[1]}${BASH_REMATCH[2]}XXXXXX${BASH_REMATCH[4]}"
+   else
+      local textMasked=$text
+   fi
+
+   echo $textMasked
+}
+
+function bl_str_brackets
+{
+   local string=$1
+   if [ ${#string} -ne 0 ]; then
+      echo "[$string]"
+   fi
+}
+
+function bl_str_get_part
+{
+   local string=$1
+   local separator=$2
+   local partNo=$3
+
+   local startPos=0
+   local stringPart=
+   local count=0
+  
+#  The easier way would be to loop using the IFS, but that would lose
+#  trailing whitespaces if there were more than one.
+   
+   for ((i=0; i<${#string}; i++)); do
+      if [ "${string:i:1}" = "$separator" ]; then
+         stringPart=${string:startPos:i-startPos}
+         startPos=$((i+1))
+         count=$((count+1))
+
+         if [ $count -eq $partNo ]; then
+            break
+         fi
+      fi
+   done
+
+   if [ $count -ne $partNo ]; then
+      stringPart=${string:startPos}
+   fi
+
+   echo $stringPart
+}
+
+### RUN ########################################################################
+
+# nothing here

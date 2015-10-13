@@ -1,0 +1,124 @@
+################################################################################
+#                                                                              #
+#   bl_ui:  bash library, user interface functions                             #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_UI_INCLUDED ]; then
+   BL_UI_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+
+### GLOBAL VARIABLES ###########################################################
+
+BL_UI_PASSWORD=
+
+BL_UI_NOCOLOR="\e[0m"
+
+#      green)  color="\e[42m\e[1;37m" ;;
+#BL_UI_COLOR_REGEX="(.*).\[[0-9];[0-9]+m(.*)"      # quoted version
+#BL_UI_COLOR_REGEX=\(.*\).\\[[0-9]\;[0-9]+m\(.*\)   # unquoted version
+#BL_UI_COLOR_REGEX=\(.*\).\\[[0-9][^\;]+\;[0-9]+m\(.*\)   # unquoted version
+BL_UI_COLOR_REGEX=\(.*\).\\[.+m\(.*\)
+
+### FUNCTIONS ##################################################################
+
+function bl_ui_confirm
+{
+   local response=
+
+#  call with a prompt string or use a default
+   read -r -p "${1:-Are you sure? [y/N]} " response
+   case $response in
+      [yY][eE][sS]|[yY]) true  ;;
+                      *) false ;;
+   esac
+}
+
+function bl_ui_read_pw
+{
+#  based on by
+#  http://stackoverflow.com/questions/4316730/linux-scripting-hiding-user-input-on-terminal
+
+   local password=
+
+   while IFS= read -r -s -n1 char; do
+      if [ -z $char ]; then   # "nothing" equals <enter>
+         echo
+         break;
+      fi
+
+      if [ $char = $'\b' ]; then   # backspace?
+#        delete last character
+         if [ ${#password} -ne 0 ]; then   # avoiding bl_str_is_empty dependency
+            password=${password:0:${#password}-1}
+            echo -n -e '\b \b'
+         fi
+      else
+#        add character to variable
+         password+=$char
+#        print asterisk instead of real character
+         echo -n '*'
+      fi
+   done
+
+   BL_UI_PASSWORD=$password
+}
+
+function bl_ui_bcol   # background color
+{
+   local color=$1
+   local text=${*:2}   # arguments 2...n
+
+   case $color in   # background is '$color', foreground is white
+      green)  color="\e[42m\e[1;37m" ;;
+      yellow) color="\e[43m\e[1;37m" ;;
+      red)    color="\e[41m\e[1;37m" ;;
+      cyan)   color="\e[46m\e[1;37m" ;;
+      *)      color=$BL_UI_NOCOLOR   ;;
+   esac
+
+   echo "$color$text$BL_UI_NOCOLOR"
+}
+
+function bl_ui_fcol   # foreground color
+{
+   local color=$1
+   local text=${*:2}   # arguments 2...n
+
+   case $color in
+      cyan)   color="\e[0;36m"    ;;
+      gray)   color="\e[0;37m"    ;;
+      red)    color="\e[0;31m"    ;;
+      purple) color="\e[0;35m"    ;;
+      green)  color="\e[0;32m"    ;;
+      yellow) color="\e[0;33m"    ;;
+      *)      color=BL_UI_NOCOLOR ;;
+   esac
+
+   echo "$color$text$BL_UI_NOCOLOR"
+}
+
+function bl_ui_remove_col
+{
+   local text="$*"
+
+   while [[ "$text" =~ $BL_UI_COLOR_REGEX ]]; do
+      text="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+   done
+
+   echo "$text"
+}
+
+### RUN ########################################################################
+
+# nothing here

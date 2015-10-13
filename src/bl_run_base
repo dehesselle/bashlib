@@ -1,0 +1,64 @@
+################################################################################
+#                                                                              #
+#   bl_run_base:  bash library, functions related to running programs          #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_RUN_BASE_INCLUDED ]; then
+   BL_RUN_BASE_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_log
+
+### VARIABLES ##################################################################
+
+BL_RUN_CMD_ARGS=$@
+
+### SETTINGS ###################################################################
+
+# nothing here
+
+### FUNCTIONS ##################################################################
+
+function bl_run
+{
+   local cmd="$*"
+
+   bl_log_i $cmd
+
+   $cmd 1>>$BL_LOG_FILE 2>&1
+
+   local rc=$?
+
+   bl_log_d "rc: $rc"
+
+   return $rc
+}
+
+function bl_run_nolog
+{
+   local cmd="$*"
+
+   bl_log_i $cmd
+
+   $cmd
+
+   local rc=$?
+
+   bl_log_d "rc: $rc"
+
+   return $rc
+}
+
+### RUN ########################################################################
+
+# nothing here

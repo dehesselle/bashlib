@@ -1,0 +1,106 @@
+################################################################################
+#                                                                              #
+#   bl_tar:  bash library, functions for creating archives                     #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_TAR_INCLUDED ]; then
+   BL_TAR_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_fs
+source $BL_SRC/bl_str
+source $BL_SRC/bl_time
+source $BL_SRC/bl_log
+source $BL_SRC/bl_run_base
+
+### GLOBAL VARIABLES ###########################################################
+
+# nothing here
+
+### FUNCTIONS ##################################################################
+
+function bl_tar_get_flag
+{
+   local file=$1
+
+#  determine flag from filename extension
+   case ${file##*.} in
+      bz2) echo "j" ;;
+      xz)  echo "J" ;;
+      gz)  echo "z" ;;
+      *)   echo ""  ;;
+   esac
+}
+
+function bl_tar_get_ext
+{
+   local flag=$1
+
+   case $flag in
+      j) echo ".bz2" ;;
+      J) echo ".xz"  ;;
+      z) echo ".gz"  ;;
+      *) echo ""     ;;
+   esac
+}
+
+function bl_tar_move_dir
+{
+   local dir=$1
+   local archive_dir=$2
+   local archive_name=$3
+
+   if $(bl_str_is_empty $archive_name); then
+      archive_name=$(bl_fs_get_dirname $dir)_$(bl_time_get).tar.xz
+   fi
+
+   bl_log_i "archiving '$dir'..."
+#  type of compression is determined by archive name extension
+
+   $(cd $dir/..; bl_run tar --remove-files -c$(bl_tar_get_flag $archive_name)f \
+$archive_dir/$archive_name $(basename $dir) 1>>$BL_LOG_FILE 2>&1)
+   
+   bl_log_i "...done: $archive_dir/$archive_name"
+}
+
+function bl_tar_extract
+{
+   local archive_name=$1
+   local dir=$2
+
+#  Only when we created the directory to extract to we need to give the
+#  name back to the caller of this function.
+   local echo_dir=false
+
+   if $(bl_str_is_empty $dir); then
+      dir=$(bl_fs_new_tempfile)
+      mkdir -p $dir 1>>$BL_LOG_FILE 2>&1
+      echo_dir=true
+   fi
+
+   cd $dir
+   tar x$(bl_tar_get_flag $archive_name)f $archive_name \
+1>>$BL_LOG_FILE 2>&1
+
+   if $echo_dir; then
+      echo $dir
+   fi
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm tar
+bl_dep_check_pgm bzip2
+bl_dep_check_pgm xz
+bl_dep_check_pgm gzip
+bl_dep_check_pgm pwd

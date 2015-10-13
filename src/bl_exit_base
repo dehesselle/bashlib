@@ -1,0 +1,86 @@
+################################################################################
+#                                                                              #
+#   bl_exit_base:  bash library, "trap on exit" functionality                  #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_EXIT_BASE_INCLUDED ]; then
+   BL_EXIT_BASE_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+
+### GLOBAL VARIABLES ###########################################################
+
+declare -a BL_EXIT_FUNC
+
+BL_EXIT_FUNC_INDEX_FRONT=0
+BL_EXIT_FUNC_INDEX_BACK=0
+
+BL_EXIT_MYSELF_PID=$$
+
+### FUNCTIONS ##################################################################
+
+# enable alias expansion
+shopt -s expand_aliases
+
+function bl_exit_func_add_back
+{
+   local func=$1
+
+   if [ $BL_EXIT_FUNC_INDEX_FRONT -eq 0 ]; then
+      BL_EXIT_FUNC_INDEX_FRONT=50
+      BL_EXIT_FUNC_INDEX_BACK=50
+   else
+      ((BL_EXIT_FUNC_INDEX_BACK++))
+   fi
+
+   BL_EXIT_FUNC[$BL_EXIT_FUNC_INDEX_BACK]=$func
+}
+
+function bl_exit_func_add_front
+{
+   local func=$1
+
+   if [ $BL_EXIT_FUNC_INDEX_FRONT -eq 0 ]; then
+      BL_EXIT_FUNC_INDEX_FRONT=50
+      BL_EXIT_FUNC_INDEX_BACK=50
+   else
+      ((BL_EXIT_FUNC_INDEX_FRONT--))
+   fi
+
+   BL_EXIT_FUNC[$BL_EXIT_FUNC_INDEX_FRONT]=$func
+}
+
+alias bl_exit_func_add='bl_exit_func_add_front'
+
+function __bl_exit_func_process
+{
+   local rc=$?
+
+   if [ $BL_EXIT_FUNC_INDEX_FRONT -ne 0 ]; then
+      for ((i=$BL_EXIT_FUNC_INDEX_FRONT; i<=$BL_EXIT_FUNC_INDEX_BACK; i++)); do
+         ${BL_EXIT_FUNC[$i]}
+      done
+   fi
+
+#  This is the exit code that will be given back for any script using
+#  'bl_exit' because we trapped the exit signal (so this is *the* final
+#  command that will be executed).
+   exit $rc
+}
+### RUN ########################################################################
+
+trap __bl_exit_func_process exit
+#trap "exit 1" TERM   # TODO what was that for? delete me?
+
+set -E
+trap '[ "$?" -ne 16 ] || exit 16' ERR

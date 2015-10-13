@@ -1,0 +1,168 @@
+################################################################################
+#                                                                              #
+#   bl_release:  bash library, release information                             #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_RELEASE_INCLUDED ]; then
+   BL_RELEASE_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+# No other dependencies but 'bl_dep' allowed!
+. $BL_SRC/bl_dep
+
+### GLOBAL VARIABLES ###########################################################
+
+BL_RELEASE_VERSION="0.18.0"
+
+# TODO
+# Everything below is old - need to think about how I want to proceed here.
+# Right now 'bl_release' is needed for having the version no.
+#
+#
+
+#BL_RELEASE_BTRFS=516a2a3868ca654268c3357027934f2
+#BL_RELEASE_CVS=e38ce7a6c64c474181769a62931d5d3
+#BL_RELEASE_DEP=439840a06a01eb96dce426ebf9f84c1
+#BL_RELEASE_DMN=d96d93a029b14348247f54190e841dc
+#BL_RELEASE_EXIT=f59fcb1eb19050bdc98717e794cbb6c
+#BL_RELEASE_FIRE=e3d352c4c7b14ef2211fac1df1f765e
+#BL_RELEASE_FS=1092f48226e3b055e65d9476251bef3
+#BL_RELEASE_GIT=548c03d07cb3c524d6c292c6b7f96f6
+#BL_RELEASE_INI=da07891110ac9f7776d00cd623fb783
+#BL_RELEASE_LOG=837f3757e63d1bdac7f54647e9bb242
+#BL_RELEASE_MAIL=7bef1099d30d3a8fcfbb654d9199baa
+#BL_RELEASE_PLD=e5ee5f6b2b03bd93e95f5dc04af7dab
+#BL_RELEASE_RUN=f8afa4ce7ea2e8b87b42dbfd7521f19
+#BL_RELEASE_SAS=a948a4046e9874ad38351e00bf41277
+#BL_RELEASE_STR=5238f6ba5905d93f4bdfa368402c679
+#BL_RELEASE_TAR=10b0f223f01c9445a2b3ab5d257fe74
+#BL_RELEASE_TIME=8116652bd771cdb3b12b61dc52126fd
+#BL_RELEASE_UI=900684e59a026498af8324893b86d0f
+
+### FUNCTIONS ##################################################################
+
+function bl_release_check_ver_min
+{
+   local version=$1
+
+   if [[ $BL_RELEASE_VERSION =~ ([0-9]{1})\.([0-9]+)\.[0-9]+\ .* ]]; then
+      local ver_maj=${BASH_REMATCH[1]}
+      local ver_min=${BASH_REMATCH[2]}
+
+      if [[ $version =~ ([0-9]{1})\.([0-9]+)\.[0-9]+ ]]; then
+         if [ $ver_maj -ge {BASH_REMATCH[1]} ] &&
+            [ $ver_min -ge {BASH_REMATCH[2]} ]; then
+            echo true
+         else
+            echo false
+         fi
+      else
+         echo false
+      fi
+   else
+      echo false
+   fi
+}
+
+function bl_release_check_ver_max
+{
+   local version=$1
+
+   if [[ $BL_RELEASE_VERSION =~ ([0-9]{1})\.([0-9]+)\.[0-9]+\ .* ]]; then
+      local ver_maj=${BASH_REMATCH[1]}
+      local ver_min=${BASH_REMATCH[2]}
+
+      if [[ $version =~ ([0-9]{1})\.([0-9]+)\.[0-9]+ ]]; then
+         if [ $ver_maj -le {BASH_REMATCH[1]} ] &&
+            [ $ver_min -le {BASH_REMATCH[2]} ]; then
+            echo true
+         else
+            echo false
+         fi
+      else
+         echo false
+      fi
+   else
+      echo false
+   fi
+}
+
+function bl_release_update
+{
+   bl_dep_check grep
+
+   grep -n -e "^BL_RELEASE_" $BL_SRC/bl_release |
+   while IFS= read -r line; do
+         if [[ $line =~ ^([0-9]+):BL_RELEASE_([A-Z]+)(__([0-9]+))?=.* ]]; then
+         local line_no=${BASH_REMATCH[1]}
+         local item=${BASH_REMATCH[2]}
+         local version_str=${BASH_REMATCH[3]}
+         local version_no=${BASH_REMATCH[4]}
+
+         declare -l file=bl_$item   # lower case
+
+         case "BL_RELEASE_$item$version_str" in
+            BL_RELEASE_VERSION)
+               bl_fire_line $BL_SRC/bl_release $line_no "BL_RELEASE_VERSION=\"$(bl_git_get_version)\""
+               ;;
+            *)
+               if $(bl_str_is_empty $version_str); then
+                  local checksum=$(bl_fs_get_md5 $BL_SRC/$file)
+               else
+                  local checksum=$(bl_fs_get_md5 $BL_SRC/$file.$version_no)
+               fi
+
+               bl_fire_line $BL_SRC/bl_release $line_no "BL_RELEASE_$item$version_str=$checksum"
+               ;;
+         esac
+      fi
+   done
+}
+
+function bl_release_check
+{
+   bl_dep_check grep
+
+   grep -n -e "^BL_RELEASE_" $BL_SRC/bl_release |
+   while IFS= read -r line; do
+      if [[ $line =~ ^([0-9]+):BL_RELEASE_([A-Z]+)(__([0-9]+))?=(.*) ]]; then
+         local line_no=${BASH_REMATCH[1]}
+         local item=${BASH_REMATCH[2]}
+         local version_str=${BASH_REMATCH[3]}
+         local version_no=${BASH_REMATCH[4]}
+         local checksum=${BASH_REMATCH[5]}
+
+         declare -l file=bl_$item   # lower case
+         
+         case "BL_RELEASE_$item$version_str" in
+            BL_RELEASE_VERSION)
+               :
+               ;;
+            *)
+               if $(bl_str_is_empty $version_str); then
+                  if [ "$checksum" != "$(bl_fs_get_md5 $file)" ]; then
+                     bl_log_w "not genuine: $file"
+                  fi
+               else
+                  if [ "$checksum" != "$(bl_fs_get_md5 $file.$version_no)" ]; then
+                     bl_log_w "not genuine: $file.$version_no"
+                  fi
+               fi
+               ;;
+         esac
+      fi
+   done 
+}
+
+### RUN ########################################################################
+
+# nothing here

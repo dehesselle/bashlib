@@ -1,0 +1,38 @@
+################################################################################
+#                                                                              #
+#   bl_fs_base:  bash library, filesystem functions                            #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_FS_BASE_INCLUDED ]; then
+   BL_FS_BASE_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+source $BL_SRC/bl_str
+
+### GLOBAL VARIABLES ###########################################################
+
+BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)
+
+BL_FS_TMP_BASE_DIR=/tmp
+
+if [ -z $BL_FS_TMP_DIR ]; then
+   BL_FS_TMP_DIR=$BL_FS_TMP_BASE_DIR
+fi
+
+### FUNCTIONS ##################################################################
+
+# nothing here
+
+### RUN ########################################################################
+
+# nothing here

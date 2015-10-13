@@ -1,0 +1,63 @@
+################################################################################
+#                                                                              #
+#   bl_time:  bash library, date/time related functions                        #
+#                                                                              #
+#                                                                              #
+#                                                                              #
+#   René de Hesselle                                                           #
+#                                                                              #
+################################################################################
+
+if [ -z $BL_TIME_INCLUDED ]; then
+   BL_TIME_INCLUDED=true
+else
+   return
+fi
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+
+### GLOBAL VARIABLES ###########################################################
+
+# nothing here
+
+### FUNCTIONS ##################################################################
+
+function bl_time_get
+{
+   local format=$1
+
+   case $format in
+      nano)
+         echo $(date +%Y%m%d%H%M%S%N)
+         ;;
+      log)
+         echo $(date +%Y%m%d-%H%M%S)
+         ;;
+      date)
+         echo $(date +%y%m%d)
+         ;;
+      read)
+         echo $(date "+%d.%m.%y %H:%M:%S")
+         ;;
+      *)
+         echo $(date +%Y%m%d%H%M%S)
+         ;;
+   esac
+}
+
+function bl_time_is_workday
+{
+   local weekday=$(date +%A)
+   
+   case $weekday in
+      Saturday) echo false ;;
+      Sunday)   echo false ;;
+      *)        echo true  ;;
+   esac
+}
+
+### RUN ########################################################################
+
+bl_dep_check_pgm date
