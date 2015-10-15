@@ -30,6 +30,7 @@ function bl_time_get
 
    case $format in
       nano)
+#        hint: 'date' from FreeBSD does not support nanoseconds ('%N')
          echo $(date +%Y%m%d%H%M%S%N)
          ;;
       log)
