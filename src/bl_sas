@@ -154,13 +154,19 @@ function bl_sas_export_object
 {
    local ini_file=$1
    local meta_type=$2
-   local meta_obj=$3
-   local pkg_name=$4
+   local meta_obj=${@:3}   # arguments 3...n; only documentational
 
-   if $(bl_str_is_empty $pkg_name); then
-      pkg_name=${meta_type}
-   fi
+#  Delete this?
+#  yes: We use this function only for specific metadata types and only one
+#       specific type each call. We use that as package name.
+#  no:  We want to be more flexible here in the future ...?
+#
+#   local pkg_name=$4
+#   if $(bl_str_is_empty $pkg_name); then
+#      pkg_name=${meta_type}
+#   fi
 
+   local pkg_name=$meta_type
    local target_dir=$(bl_fs_new_tempfile)
    mkdir $target_dir 1>>$BL_LOG_FILE 2>&1
 
@@ -178,7 +184,7 @@ $BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ExportPackage \\
 -log $target_dir/E_$pkg_name.log \\
 -types \"$meta_type\" \\
 -objects \\" > $cmd
-   for obj in $meta_obj; do
+   for obj in "${@:3}"; do
       echo "\"$obj\" \\" >> $cmd
    done
    echo -e "\
@@ -209,7 +215,7 @@ function bl_sas_import_package
    local pkg_name=$4 
 
    if $(bl_str_is_empty $pkg_name); then
-      pkg_name=${meta_type}
+      pkg_name=$meta_type
    fi
    
    local cmd=$source_dir/I_$pkg_name.sh
@@ -232,17 +238,18 @@ $BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ImportPackage \\
 2>$source_dir/I_$pkg_name.stderr
 exit \$?" >> $cmd)
 
-   chmod 755 $cmd 1>>$BL_LOG_FILE 2>&1
+   bl_run chmod 755 $cmd
    
    bl_run_nolog $cmd
    local rc=$?
 
    if [ $rc -eq 0 ]; then
       bl_log_i "import successful: $pkg_name"
-      echo $source_dir
    else
       bl_log_e "import failed with rc=$rc"
    fi
+   
+   return $rc
 }
 
 function bl_sas_compare
