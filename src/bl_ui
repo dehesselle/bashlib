@@ -18,7 +18,7 @@ fi
 
 . $BL_SRC/bl_dep
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 BL_UI_PASSWORD=
 
@@ -29,6 +29,10 @@ BL_UI_NOCOLOR="\e[0m"
 #BL_UI_COLOR_REGEX=\(.*\).\\[[0-9]\;[0-9]+m\(.*\)   # unquoted version
 #BL_UI_COLOR_REGEX=\(.*\).\\[[0-9][^\;]+\;[0-9]+m\(.*\)   # unquoted version
 BL_UI_COLOR_REGEX=\(.*\).\\[.+m\(.*\)
+
+### SETTINGS ###################################################################
+
+shopt -s expand_aliases
 
 ### FUNCTIONS ##################################################################
 
@@ -74,7 +78,9 @@ function bl_ui_read_pw
    BL_UI_PASSWORD=$password
 }
 
-function bl_ui_bcol   # background color
+alias bl_ui_col='bl_ui_col_fg'
+
+function bl_ui_col_bg   # background color
 {
    local color=$1
    local text=${*:2}   # arguments 2...n
@@ -90,7 +96,7 @@ function bl_ui_bcol   # background color
    echo "$color$text$BL_UI_NOCOLOR"
 }
 
-function bl_ui_fcol   # foreground color
+function bl_ui_col_fg   # foreground color
 {
    local color=$1
    local text=${*:2}   # arguments 2...n
@@ -108,7 +114,7 @@ function bl_ui_fcol   # foreground color
    echo "$color$text$BL_UI_NOCOLOR"
 }
 
-function bl_ui_remove_col
+function bl_ui_col_remove
 {
    local text="$*"
 

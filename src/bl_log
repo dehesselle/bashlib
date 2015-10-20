@@ -50,13 +50,13 @@ function bl_log_level_to_str
    local level=$1
 
    if   [ "$level" = "E" ]; then
-      echo "$(bl_ui_bcol red error)"
+      echo "$(bl_ui_col_bg red error)"
    elif [ "$level" = "W" ]; then
-      echo "$(bl_ui_bcol yellow warning)"
+      echo "$(bl_ui_col_bg yellow warning)"
    elif [ "$level" = "I" ]; then
-      echo "$(bl_ui_bcol green info)"
+      echo "$(bl_ui_col_bg green info)"
    elif [ "$level" = "D" ]; then
-      echo "$(bl_ui_bcol cyan debug)"
+      echo "$(bl_ui_col_bg cyan debug)"
    fi
 }
 
@@ -87,14 +87,14 @@ function bl_log_write
       if [ "${1:1:1}" = "]" ]; then   # Function name empty?
          if $2; then
             echo -e "$(bl_log_level_to_str $4) ${*:5}"
-            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_remove_col ${*:5})" >> $3
+            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_col_remove ${*:5})" >> $3
          else
             echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
          fi
       else
          if $2; then
             echo -e "$(bl_log_level_to_str $4) $1 ${*:5}"
-            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_remove_col ${*:5})" >> $3
+            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_col_remove ${*:5})" >> $3
          else
             echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
          fi
@@ -102,7 +102,7 @@ function bl_log_write
    else
       if $1; then
          echo -e "$(bl_log_level_to_str $3) ${*:4}"
-         echo "$(bl_time_get log) $3 $$ $(bl_ui_remove_col ${*:4})" >> $2
+         echo "$(bl_time_get log) $3 $$ $(bl_ui_col_remove ${*:4})" >> $2
       else
          echo "$(bl_time_get log) $3 $$ ${*:4}" >> $2
       fi
