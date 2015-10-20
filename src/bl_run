@@ -207,9 +207,9 @@ function bl_run_get_pid
 #  inserting square brackets around the last character turns 'expr' into a regex
    local expr_as_regex="${expr:0:$last_char_pos}[${expr:$last_char_pos}]"
 
-#  We use 'ps -ax' instead of 'ps -ef' because it's BSD-syntax and Linux
-#  understands that as well.
-   local pid=$(ps -ax | grep "$expr_as_regex" | awk '{ print($2) }')
+#  We use BSD-syntax 'ps ax' instead of 'ps -ef' because it works on both Linux
+#  and *BSD.
+   local pid=$(ps ax | grep "$expr_as_regex" | awk '{ print($2) }')
 
    if $(bl_str_is_empty $pid); then
       pid=0
