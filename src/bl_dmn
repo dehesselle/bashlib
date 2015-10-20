@@ -17,13 +17,13 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_log
-source $BL_SRC/bl_str
 source $BL_SRC/bl_fs
-source $BL_SRC/bl_exit
+source $BL_SRC/bl_log
+source $BL_SRC/bl_run
+source $BL_SRC/bl_str
 source $BL_SRC/bl_ui
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 if [ -z $BL_DMN_PID_DIR ]; then
    BL_DMN_PID_DIR=$BL_FS_TMP_DIR
@@ -43,7 +43,7 @@ function bl_dmn_get_pid
       if [ -f $BL_DMN_PIDFILE ]; then
          local pid=$(cat $BL_DMN_PIDFILE)
 
-         if [ $(ps -p $pid | wc -l) -eq 2 ]; then
+         if $(bl_run_pid_check $pid); then
             echo $pid   # ok
          else
             bl_log_d "pidfile: $pid"
@@ -79,28 +79,45 @@ function bl_dmn_start
 {
    local parameter=$1
 
-#  We're purposefully checking for 'daemon_run' but calling 'bl_daemon_run'
-#  instead.
+   local bl_dmn_start_rc=0
+
+#  Since 'bl_daemon_run' is only a wrapper for a custom 'daemon_run'
+#  we need to check for the latter.
    if $(bl_dep_check_func daemon_run); then
       bl_daemon_run $parameter &
 
-#     We purposefully write the pid to file, sleep and use 'bl_dmn_get_pid'
-#     to retrieve it to catch early "failed on start" errors.
-      echo $! > $BL_DMN_PIDFILE
-      sleep 1
-      local pid=$(bl_dmn_get_pid)
+#     This is the pid from the backgrounded shell. It may be the wrong one
+#     for us to use in case the script supplies its own function to determine
+#     the pid.
+      local pid=$!
+      echo $pid > $BL_DMN_PIDFILE   # may be overwritten (see below)
+      bl_log_d "backgrounded 'bl_daemon_run' as pid $pid"
 
-      if [ $pid -gt 0 ]; then
-         bl_log_ii "backgrounded $BL_FS_MYSELF_NAME as pid \
-$(bl_ui_col purple $(bl_dmn_get_pid))"
+#     We wait for the process to come up and also get the pid we need.
+      pid=$(bl_dmn_get_pid)
+      local seconds=0
+
+      while [ $pid -lt 0 ] && [ $seconds -lt 6 ]; do
+         bl_log_i "waiting for process to come up"
+         sleep 1
+         ((seconds++))
+         pid=$(bl_dmn_get_pid)
+      done
+
+      if [ $pid -gt 0 ] && $(bl_run_pid_check $pid); then
+         bl_log_ii "backgrounded $BL_FS_MYSELF_NAME, pid is \
+$(bl_ui_col purple $pid)"
+         echo $pid > $BL_DMN_PIDFILE
       else
          bl_log_ee "failed to start $BL_FS_MYSELF_NAME"
-         BL_EXIT_RC=1
+         bl_dmn_start_rc=1
       fi
    else
       bl_log_ee "function not implemented: $command"
-      BL_EXIT_RC=1
+      bl_dmn_start_rc=1
    fi
+
+   return $bl_dmn_start_rc
 }
 
 function bl_dmn_stop
@@ -115,6 +132,8 @@ function bl_dmn_stop
    else
       bl_log_ii "nothing to stop"
    fi
+
+   return 0
 }
 
 function bl_dmn_status
@@ -122,11 +141,20 @@ function bl_dmn_status
    local pid=$(bl_dmn_get_pid)
 
    case $pid in
-       0) bl_log_ii "process is not running"                            ;;
-      -1) bl_log_ww "process seems to have died"                        ;;
-      -2) bl_log_ii "process is not running"                            ;;
-       *) bl_log_ii "process is running (pid $(bl_ui_col purple $pid))" ;;
+      -1) bl_log_ww "process seems to have died" ;;
+      -2) bl_log_ii "process is not running"     ;;
+       *)
+#        This check is a precaution since we don't know what a custom
+#        'daemon_get_pid' function might return to us.
+         if [ $pid -gt 0 ]; then
+            bl_log_ii "process is running (pid $(bl_ui_col purple $pid))"
+         else
+            bl_log_ee "this should not happen: pid $pid"
+         fi
+         ;;
    esac
+
+   return 0
 }
 
 function bl_dmn_print_usage
@@ -138,6 +166,8 @@ function bl_dmn_dispatch
 {
    local command=$1
    local parameter=$2
+
+   local bl_dmn_dispatch_rc=0
 
    if [ $# -gt 2 ]; then
       bl_log_w "only processing first two arguments"
@@ -156,32 +186,39 @@ function bl_dmn_dispatch
             -1)
                bl_log_w "previously unclean exit (stale pidfile)"
                bl_dmn_start $parameter
+               bl_dmn_dispatch_rc=$?
                ;;
             -2)   # ok
                bl_dmn_start $parameter
+               bl_dmn_dispatch_rc=$?
                ;;
              *)
                bl_log_ii "$BL_FS_MYSELF_NAME already running \
 (pid $(bl_ui_col purple $pid))"
-               BL_EXIT_RC=1
+               bl_dmn_dispatch_rc=1
                ;;
          esac
          ;;
       stop|status)
          if $(bl_dep_check_func daemon_$command); then
             daemon_$command $parameter
+            bl_dmn_dispatch_rc=$?
          else
             bl_dmn_$command
+            bl_dmn_dispatch_rc=$?
          fi
          ;;
       restart)
          if $(bl_dep_check_func daemon_stop); then
             daemon_stop $parameter
+            bl_dmn_dispatch_rc=$?
          else
             bl_dmn_stop
+            bl_dmn_dispatch_rc=$?
          fi
          sleep 1
          bl_dmn_start $parameter
+         bl_dmn_dispatch_rc=$?
          ;;
       *)
          if $(bl_dep_check_func daemon_print_usage); then
@@ -189,9 +226,10 @@ function bl_dmn_dispatch
          else
             bl_dmn_print_usage
          fi
-         BL_EXIT_RC=1
          ;;
    esac
+
+   return $bl_dmn_dispatch_rc
 }
 
 ### RUN ########################################################################
