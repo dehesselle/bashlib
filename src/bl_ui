@@ -28,7 +28,7 @@ BL_UI_NOCOLOR="\e[0m"
 #BL_UI_COLOR_REGEX="(.*).\[[0-9];[0-9]+m(.*)"      # quoted version
 #BL_UI_COLOR_REGEX=\(.*\).\\[[0-9]\;[0-9]+m\(.*\)   # unquoted version
 #BL_UI_COLOR_REGEX=\(.*\).\\[[0-9][^\;]+\;[0-9]+m\(.*\)   # unquoted version
-BL_UI_COLOR_REGEX=\(.*\).\\[.+m\(.*\)
+BL_UI_COLOR_REGEX=\(.*\)..\\[.+m\(.*\)
 
 ### SETTINGS ###################################################################
 
