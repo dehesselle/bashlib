@@ -220,7 +220,7 @@ function bl_run_get_pid
 function bl_run_pid_check
 {
    local pid=$1
-   local result=$(ps -p $pid | wc -l)
+   local result=$(ps -p $pid | wc -l | awk '{print $1}')
 
    case $result in
       1) echo false ;;
