@@ -23,7 +23,7 @@ source $BL_SRC/bl_str
 source $BL_SRC/bl_log
 source $BL_SRC/bl_exit_base
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 if [ "$BL_FS_TMP_DIR" = "$BL_FS_TMP_BASE_DIR" ]; then
    BL_FS_TMP_DIR=$BL_FS_TMP_BASE_DIR/$BL_FS_MYSELF_NAME.$$.tmp
@@ -34,8 +34,6 @@ BL_FS_MYSELF_DIR=
 BL_FS_TMP_COUNT=1
 
 ### FUNCTIONS ##################################################################
-
-shopt -s expand_aliases
 
 function bl_fs_new_tempfile
 {
@@ -52,7 +50,15 @@ function bl_fs_new_tempfile
    fi
 }
 
-alias bl_fs_get_name='readlink -f'
+function bl_fs_get_name
+{
+   local file=$1
+
+   case $(uname) in
+      Linux) echo $(readlink -f $file)    ;;
+      *)     echo $(bl_fs_readlink_f $file) ;;
+   esac
+}
 
 function bl_fs_get_filename_fq
 {
@@ -225,20 +231,43 @@ function bl_fs_cleanup_tmp
    fi
 }
 
+# This is a substitute for 'readlink -f' which is missing on *BSD.
+# (hint: GNU coreutils provide 'greadlink -f' on *BSD)
+#
+# source: http://stackoverflow.com/questions/1055671/
+function bl_fs_readlink_f
+{
+   local file=$1
+
+   cd $(dirname $file)
+   file=$(basename $file)
+
+   while [ -L "$file" ]; do
+      file=$(readlink $file)
+      cd $(dirname $file)
+      file=$(basename $file)
+   done
+
+   local dir=$(pwd -P)
+
+   echo $dir/$file
+}
 
 ### RUN ########################################################################
 
-#bl_dep_check md5sum
-bl_dep_check_pgm readlink
-bl_dep_check_pgm stat
+bl_dep_check_pgm basename
 bl_dep_check_pgm cat
-bl_dep_check_pgm wc
-bl_dep_check_pgm find
-bl_dep_check_pgm sort
-bl_dep_check_pgm tail
 bl_dep_check_pgm dirname
+bl_dep_check_pgm find
+#bl_dep_check md5sum
+bl_dep_check_pgm pwd
+bl_dep_check_pgm readlink
+bl_dep_check_pgm sort
+bl_dep_check_pgm stat
+bl_dep_check_pgm tail
+bl_dep_check_pgm wc
 
-BL_FS_MYSELF_DIR=$(dirname $(readlink -f $0))
+BL_FS_MYSELF_DIR=$(dirname $(bl_fs_get_name $0))
 
 if   [ ! -d $BL_FS_TMP_DIR ]; then
    mkdir -p $BL_FS_TMP_DIR 1>/dev/null 2>&1
