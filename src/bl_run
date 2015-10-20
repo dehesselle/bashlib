@@ -217,6 +217,20 @@ function bl_run_get_pid
    echo $pid
 }
 
+function bl_run_pid_check
+{
+   local pid=$1
+   local result=$(ps -p $pid | wc -l)
+
+   case $result in
+      1) echo false ;;
+      2) echo true  ;;
+      *) bl_log_e "unexpected result: $result"
+         echo false
+         ;;
+   esac
+}
+
 ### RUN ########################################################################
 
 bl_dep_check_pgm awk
