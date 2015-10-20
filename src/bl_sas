@@ -57,10 +57,15 @@ function bl_sas_exec_batch
    if $(bl_str_is_empty $BL_SAS_CONFIG); then
       bl_log_e "you need to set 'BL_SAS_CONFIG'"
       return 1
+   else
+      local cmd="$BL_SAS_CONFIG/$BL_SAS_APPCONTEXT/BatchServer/sasbatch.sh"
+      if [ ! -f $cmd ]; then
+         bl_log_e "cannot find Batchserver: $cmd"
+         return 1
+      fi
    fi
 
-   local cmd="$BL_SAS_CONFIG/$BL_SAS_APPCONTEXT/BatchServer/sasbatch.sh \
--xcmd -batch -noterminal"
+   local cmd="$cmd -xcmd -batch -noterminal"
 
    bl_sas_exec "$cmd" $pgm $log "$log_opt"
 
