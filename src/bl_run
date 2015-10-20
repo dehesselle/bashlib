@@ -201,11 +201,9 @@ function bl_run_get_pid
 {
    local expr=$1   # expression to grep for
 
-   local last_char_pos=${#expr}
-   ((last_char_pos--))
-
-#  inserting square brackets around the last character turns 'expr' into a regex
-   local expr_as_regex="${expr:0:$last_char_pos}[${expr:$last_char_pos}]"
+#  enclosing first character in square brackets turns 'expr' into a regex;
+#  this prevents grep from showing its own process
+   local expr_as_regex="[${expr:0:1}]${expr:1}"
 
 #  We use BSD-syntax 'ps ax' instead of 'ps -ef' because it works on both Linux
 #  and *BSD.
