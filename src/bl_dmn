@@ -122,6 +122,7 @@ function bl_dmn_status
    local pid=$(bl_dmn_get_pid)
 
    case $pid in
+       0) bl_log_ii "process is not running"                            ;;
       -1) bl_log_ww "process seems to have died"                        ;;
       -2) bl_log_ii "process is not running"                            ;;
        *) bl_log_ii "process is running (pid $(bl_ui_col purple $pid))" ;;
@@ -152,7 +153,7 @@ function bl_dmn_dispatch
       start)
          local pid=$(bl_dmn_get_pid)
          case $pid in
-            -1) 
+            -1)
                bl_log_w "previously unclean exit (stale pidfile)"
                bl_dmn_start $parameter
                ;;
