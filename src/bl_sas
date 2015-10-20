@@ -108,8 +108,8 @@ function bl_sas_exec
       log_opt="-logparm \"$log_opt\""
    fi
 
-   if $(bl_str_is_empty $sas_print); then
-      sas_print=/dev/null
+   if $(bl_str_is_empty $print); then
+      print=/dev/null
    fi
 
    cmd="$cmd $log_opt -log $log -print $print -sysin $pgm"
