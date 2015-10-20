@@ -123,7 +123,7 @@ function bl_fs_get_dirname
 function bl_fs_get_size
 {
    local file=$1
-   
+
    local size=$(stat -c %s $file 2>&1)
    local rc=$?
 
@@ -189,7 +189,7 @@ function bl_fs_is_dir_writable
 function bl_fs_get_lines
 {
    local file=$1
-   
+
    echo $(cat $file | wc -l)
 }
 
@@ -205,7 +205,7 @@ function bl_fs_keep_recent
 {
    local file_pattern=$1
    local count=$2
-   
+
    ((count++))
 
    find $file_pattern | sort -r | tail -n +$count | while read file; do
@@ -219,7 +219,7 @@ function bl_fs_cleanup_tmp
 #  get all files including hidden ones
    files=$(shopt -s nullglob; shopt -s dotglob; echo $BL_FS_TMP_DIR/*)
 
-   if [ ${#files[@]} -eq 0 ]; then
+   if [ ${#files} -eq 0 ]; then
 #     if no files returned, remove our temporary directory
       rmdir $BL_FS_TMP_DIR 1>/dev/null 2>&1
    fi
@@ -238,14 +238,13 @@ bl_dep_check_pgm sort
 bl_dep_check_pgm tail
 bl_dep_check_pgm dirname
 
-BL_FS_MYSELF_DIR=$(dirname $(readlink -f $0)) 
+BL_FS_MYSELF_DIR=$(dirname $(readlink -f $0))
 
 if   [ ! -d $BL_FS_TMP_DIR ]; then
    mkdir -p $BL_FS_TMP_DIR 1>/dev/null 2>&1
 
    if [ $? -eq 0 ]; then
-      :
-      #bl_exit_func_add bl_fs_cleanup_tmp
+      bl_exit_func_add bl_fs_cleanup_tmp
    else
       bl_log_ee "unable to create temporary directory: $BL_FS_TMP_DIR"
       exit 1
