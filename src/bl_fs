@@ -21,17 +21,10 @@ source $BL_SRC/bl_fs_base
 source $BL_SRC/bl_time
 source $BL_SRC/bl_str
 source $BL_SRC/bl_log
-source $BL_SRC/bl_exit_base
 
 ### VARIABLES ##################################################################
 
-if [ "$BL_FS_TMP_DIR" = "$BL_FS_TMP_BASE_DIR" ]; then
-   BL_FS_TMP_DIR=$BL_FS_TMP_BASE_DIR/$BL_FS_MYSELF_NAME.$$.tmp
-fi
-
 BL_FS_MYSELF_DIR=
-
-BL_FS_TMP_COUNT=1
 
 ### FUNCTIONS ##################################################################
 
@@ -40,11 +33,7 @@ function bl_fs_new_tempfile
    local directory=$1
 
    if $(bl_str_is_empty $directory); then
-      if [ "$BL_FS_TMP_DIR" = "$BL_FS_TMP_BASE_DIR" ]; then
-         echo "$BL_FS_TMP_DIR/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
-      else
-         echo "$BL_FS_TMP_DIR/$(bl_time_get nano)"
-      fi
+      echo "$BL_FS_TMP_DIR/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
    else
       echo "$directory/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
    fi
@@ -55,8 +44,8 @@ function bl_fs_get_name
    local file=$1
 
    case $(uname) in
-      Linux) echo $(readlink -f $file)    ;;
-      *)     echo $(bl_fs_readlink_f $file) ;;
+      Linux) echo $(readlink -f $file  )    ;;
+          *) echo $(bl_fs_readlink_f $file) ;;
    esac
 }
 
@@ -220,17 +209,6 @@ function bl_fs_keep_recent
    done
 }
 
-function bl_fs_cleanup_tmp
-{
-#  get all files including hidden ones
-   files=$(shopt -s nullglob; shopt -s dotglob; echo $BL_FS_TMP_DIR/*)
-
-   if [ ${#files} -eq 0 ]; then
-#     if no files returned, remove our temporary directory
-      rmdir $BL_FS_TMP_DIR 1>/dev/null 2>&1
-   fi
-}
-
 # This is a substitute for 'readlink -f' which is missing on *BSD.
 # (hint: GNU coreutils provide 'greadlink -f' on *BSD)
 #
@@ -269,16 +247,7 @@ bl_dep_check_pgm wc
 
 BL_FS_MYSELF_DIR=$(dirname $(bl_fs_get_name $0))
 
-if   [ ! -d $BL_FS_TMP_DIR ]; then
-   mkdir -p $BL_FS_TMP_DIR 1>/dev/null 2>&1
-
-   if [ $? -eq 0 ]; then
-      bl_exit_func_add bl_fs_cleanup_tmp
-   else
-      bl_log_ee "unable to create temporary directory: $BL_FS_TMP_DIR"
-      exit 1
-   fi
-elif ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
+if ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
    bl_log_ee "directory for temporary files not writable: $BL_FS_TMP_DIR"
    exit 1
 fi

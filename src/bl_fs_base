@@ -23,10 +23,8 @@ source $BL_SRC/bl_str
 
 BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)
 
-BL_FS_TMP_BASE_DIR=/tmp
-
 if [ -z $BL_FS_TMP_DIR ]; then
-   BL_FS_TMP_DIR=$BL_FS_TMP_BASE_DIR
+   BL_FS_TMP_DIR=/tmp
 fi
 
 ### FUNCTIONS ##################################################################
