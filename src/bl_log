@@ -139,19 +139,18 @@ if [ $? -eq 0 ]; then
    bl_exit_func_add_back bl_log_on_exit   # "end of log" as last message
 
    if ! $BL_LOG_DEBUG_ENABLE; then
-#     Disable all debug logging by turning statements into comments.
-#     Prepend a no-op in case it's the only statement in an if-clause.
-      alias bl_log_d=': #'
-      alias bl_log_dd=': #'
+#     Disable all debug logging by turning statements into NOOPs.
+      alias bl_log_d=': '
+      alias bl_log_dd=': '
    fi
 else   # logfile not writable
    echo "$(bl_time_get log) E [$BL_FS_MYSELF_NAME] logging disabled, \
 not writable: $BL_LOG_FILE"
-#  See comment above.
-   alias bl_log_d=': #'
-   alias bl_log_i=': #'
-   alias bl_log_w=': #'
-   alias bl_log_e=': #'
+#  Disable logging to file by turning statements into NOOPs or 'echo'.
+   alias bl_log_d=': '
+   alias bl_log_i=': '
+   alias bl_log_w=': '
+   alias bl_log_e=': '
    alias bl_log_dd='echo '
    alias bl_log_ii='echo '
    alias bl_log_ww='echo '
