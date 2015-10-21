@@ -55,15 +55,6 @@ function bl_dmn_get_pid
    fi
 }
 
-function bl_dmn_del_pidfile
-{
-   if [ -f $BL_DMN_PIDFILE ]; then
-      rm $BL_DMN_PIDFILE 1>>$BL_LOG_FILE 2>&1
-   else
-      bl_log_e "file not found: $BL_DMN_PIDFILE"
-   fi
-}
-
 function bl_daemon_run
 {
    local parameter=$1
@@ -123,17 +114,33 @@ $(bl_ui_col purple $pid)"
 function bl_dmn_stop
 {
    local pid=$(bl_dmn_get_pid)
+   local bl_dmn_stop_rc=0
 
    if [ $pid -gt 0 ]; then
       bl_log_ii "stopping pid $(bl_ui_col purple $pid)"
       kill -TERM $pid
 
-      bl_dmn_del_pidfile
+      local seconds=0
+
+      while $(bl_run_pid_check $pid) && [ $seconds -lt 6 ]; do
+         bl_log_i "waiting for process to shut down"
+         sleep 1
+         ((seconds++))
+      done
+
+      if $(bl_run_pid_check $pid); then
+         bl_log_ee "failed to stop $BL_FS_MYSELF_NAME"
+         bl_dmn_stop_rc=1
+      else
+         if [ -f $BL_DMN_PIDFILE ]; then
+            bl_run rm $BL_DMN_PIDFILE
+         fi
+      fi
    else
       bl_log_ii "nothing to stop"
    fi
 
-   return 0
+   return $bl_dmn_stop_rc
 }
 
 function bl_dmn_status
