@@ -217,15 +217,14 @@ function bl_sas_import_package
    local ini_file=$1
    local source_dir=$2
    local meta_folder=$3
-   local pkg_name=$4 
+   local pkg_name=$4
+   local options=$5   # optional: custom options for ImportPackage
 
    if $(bl_str_is_empty $pkg_name); then
       pkg_name=$meta_type
    fi
    
    local cmd=$source_dir/I_$pkg_name.sh
-
-#  unused options: '-newOnly', '-includeACL'
 
    $(bl_ini_read $ini_file; echo -e "\
 #!/bin/bash
@@ -239,6 +238,7 @@ $BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ImportPackage \\
 -password $(bl_ini_get sas.metapass) \\
 -package $source_dir/$pkg_name \\
 -log $source_dir/I_$pkg_name.log \\
+$options \\
 1>$source_dir/I_$pkg_name.stdout \\
 2>$source_dir/I_$pkg_name.stderr
 exit \$?" >> $cmd)
