@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -22,7 +22,7 @@ source $BL_SRC/bl_fs
 source $BL_SRC/bl_log
 source $BL_SRC/bl_str
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 BL_RUN_CMD_ARGS=$@
 

@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -23,7 +23,7 @@ source $BL_SRC/bl_time
 source $BL_SRC/bl_release
 source $BL_SRC/bl_ui
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 if [ -z $BL_LOG_DEBUG_ENABLE ]; then
    BL_LOG_DEBUG_ENABLE=false

@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -19,7 +19,7 @@ fi
 # No other dependencies but 'bl_dep' allowed!
 . $BL_SRC/bl_dep
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 BL_RELEASE_VERSION="0.18.0"
 

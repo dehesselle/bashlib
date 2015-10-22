@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -21,7 +21,7 @@ source $BL_SRC/bl_fs
 source $BL_SRC/bl_log
 source $BL_SRC/bl_str
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 # These arrays hold all the data that is read/written from/to *.ini files.
 # Calling 'bl_ini_set' and 'bl_ini_get' writes/reads to them.

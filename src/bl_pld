@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -21,7 +21,7 @@ source $BL_SRC/bl_str
 source $BL_SRC/bl_fs
 source $BL_SRC/bl_log
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 # This regex describes how the payload header has to look like to be recognized
 # as such, with one additional tweak: it actually only looks like 

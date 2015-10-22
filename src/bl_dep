@@ -4,7 +4,7 @@
 #                                                                              #
 #                                                                              #
 #                                                                              #
-#   René de Hesselle                                                           #
+#   https://github.com/dehesselle/bashlib                                      *
 #                                                                              #
 ################################################################################
 
@@ -18,12 +18,11 @@ fi
 
 # No dependencies allowed!
 #
-# Explanation:
-# This file is included by all the other bash library files so we can exit
-# in a controlled manner if the most basic requirements (i.e. bash) aren't
+# This file is included by all the other bashlib files so we can exit in
+# a controlled manner if the most basic requirements (i.e. bash) aren't
 # met.
 
-### GLOBAL VARIABLES ###########################################################
+### VARIABLES ##################################################################
 
 # nothing here
 
