@@ -63,7 +63,7 @@ function bl_daemon_run
    daemon_run $parameter
 
    bl_log_i "shutting down"
-   bl_run $BL_DMN_PIDFILE
+   bl_run rm $BL_DMN_PIDFILE
 }
 
 function bl_dmn_start
