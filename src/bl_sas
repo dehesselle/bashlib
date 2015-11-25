@@ -101,13 +101,13 @@ function bl_sas_exec
    local log=$3   # logfile
    local opt=$4   # optional arguments
 
-   if [[ "$opt" =~ .*\ \-print \ .* ]]; then   # contains '-print'?
+   if [[ "$opt" =~ .*\ \-print\ .* ]]; then   # contains '-print'?
       :   # yes: do nothing
    else
       opt="$opt -print /dev/null"   # no: discard print output
    fi
 
-   cmd="$cmd -log $log -sysin $sysin $opt"
+   cmd="$cmd -log $log -sysin $pgm $opt"
 
    bl_run $cmd
    local rc=$?
@@ -131,8 +131,13 @@ $warn_count warning(s)"
 $err_count error(s), $warn_count warning(s)"
       fi
    else
-      bl_log_e "failure (rc=$rc): $sas_pgm finished with \
+      if [ $err_count -eq 0 ]; then
+         bl_log_w "tainted (rc=$rc): $sas_pgm finished with \
+$err_count error(s), $warn_count warning(s)"
+      else
+         bl_log_e "failure (rc=$rc): $sas_pgm finished with \
 $err_count errors, $warn_count warnings"
+      fi
    fi
 
    return $rc
