@@ -41,7 +41,7 @@ if [ -z $BL_SAS_CONFIG ]; then
 #  there's no way to guess a sane default
    BL_SAS_CONFIG=
 fi
-   
+
 if [ -z $BL_SAS_APPCONTEXT ]; then
    BL_SAS_APPCONTEXT=SASApp
 fi
@@ -52,7 +52,7 @@ function bl_sas_exec_batch
 {
    local pgm=$1
    local log=$2
-   local log_opt=$3
+   local opt=$3
 
    if $(bl_str_is_empty $BL_SAS_CONFIG); then
       bl_log_e "you need to set 'BL_SAS_CONFIG'"
@@ -67,7 +67,7 @@ function bl_sas_exec_batch
 
    local cmd="$cmd -xcmd -batch -noterminal"
 
-   bl_sas_exec "$cmd" $pgm $log "$log_opt"
+   bl_sas_exec "$cmd" $pgm $log "$opt"
 
    return $?
 }
@@ -76,10 +76,9 @@ function bl_sas_exec_base
 {
    local pgm=$1
    local log=$2
-   local log_opt=$3
-   local print=$4
+   local opt=$3
 
-   bl_sas_exec "$BL_SAS_ROOT/sas" $pgm $log "$log_opt" $print
+   bl_sas_exec "$BL_SAS_ROOT/sas" $pgm $log "$opt"
 
    return $?
 }
@@ -88,37 +87,33 @@ function bl_sas_exec_base_u8
 {
    local pgm=$1
    local log=$2
-   local log_opt=$3
-   local print=$4
+   local opt=$3
 
-   bl_sas_exec "$BL_SAS_ROOT/bin/sas_u8" $pgm $log "$log_opt" $print
+   bl_sas_exec "$BL_SAS_ROOT/bin/sas_u8" $pgm $log "$opt"
 
    return $?
 }
 
 function bl_sas_exec
 {
-   local cmd=$1
-   local pgm=$2
-   local log=$3
-   local log_opt=$4
-   local print=$5
+   local cmd=$1   # sas executor (SAS Foundation, BatchServer, ...)
+   local pgm=$2   # run this program
+   local log=$3   # logfile
+   local opt=$4   # optional arguments
 
-   if ! $(bl_str_is_empty $log_opt); then
-      log_opt="-logparm \"$log_opt\""
+   if [[ "$opt" =~ .*\ \-print \ .* ]]; then   # contains '-print'?
+      :   # yes: do nothing
+   else
+      opt="$opt -print /dev/null"   # no: discard print output
    fi
 
-   if $(bl_str_is_empty $print); then
-      print=/dev/null
-   fi
-
-   cmd="$cmd $log_opt -log $log -print $print -sysin $pgm"
+   cmd="$cmd -log $log -sysin $sysin $opt"
 
    bl_run $cmd
    local rc=$?
 
 #  We need to scan the log for errors and warnings regardless of the returncode.
-#  It is possible to get an "rc=0" despite having errors in the log.
+#  It is possible to get a "rc=0" despite having errors in the log.
 
    local err_count=$(bl_sas_get_err_count $log)
    local warn_count=$(bl_sas_get_warn_count $log)
@@ -129,7 +124,7 @@ function bl_sas_exec
             bl_log_i "success (rc=$rc): $pgm"
          else
             bl_log_w "tainted (rc=$rc): $pgm finished with \
-$warn_count warning(s)" 
+$warn_count warning(s)"
          fi
       else
          bl_log_e "failure (rc=$rc): $pgm finished with \
@@ -198,7 +193,7 @@ $BL_SAS_HOME/SASPlatformObjectFramework/$BL_SAS_VERSION/ExportPackage \\
 exit \$?" >> $cmd)
 
    chmod 755 $cmd 1>>$BL_LOG_FILE 2>&1
-   
+
    bl_run_nolog $cmd
    local rc=$?
 
@@ -223,7 +218,7 @@ function bl_sas_import_package
    if $(bl_str_is_empty $pkg_name); then
       pkg_name=$meta_type
    fi
-   
+
    local cmd=$source_dir/I_$pkg_name.sh
 
    $(bl_ini_read $ini_file; echo -e "\
@@ -244,7 +239,7 @@ $options \\
 exit \$?" >> $cmd)
 
    bl_run chmod 755 $cmd
-   
+
    bl_run_nolog $cmd
    local rc=$?
 
@@ -253,7 +248,7 @@ exit \$?" >> $cmd)
    else
       bl_log_e "import failed with rc=$rc"
    fi
-   
+
    return $rc
 }
 
