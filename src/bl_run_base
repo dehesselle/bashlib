@@ -25,9 +25,30 @@ BL_RUN_CMD_ARGS=$@
 
 ### SETTINGS ###################################################################
 
-# nothing here
+shopt -s expand_aliases
 
 ### FUNCTIONS ##################################################################
+
+function _bl_run
+{
+   local func=$1
+   local log_level=$2
+   local log_msg=$3
+   local cmd=${*:4}   # arguments 4...n
+
+   bl_log_write "[bl_run:$func]" false $BL_LOG_FILE $log_level $log_msg
+   bl_log_write "[>]" false $BL_LOG_FILE $log_level $cmd
+
+   $cmd 1>>$BL_LOG_FILE 2>&1
+
+   local rc=$?
+
+   bl_log_d "rc: $rc"
+
+   return $rc
+}
+
+alias bl_run_i='_bl_run "$FUNCNAME" I'
 
 function bl_run
 {
