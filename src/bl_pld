@@ -104,7 +104,7 @@ function bl_pld_extract
    bl_log_d "sed -n \"${BL_PLD_BEGIN[$payload_no]},${BL_PLD_END[$payload_no]}p\""
 
    sed -n "${BL_PLD_BEGIN[$payload_no]},${BL_PLD_END[$payload_no]}p" \
-$file_source > $file_target
+$file_source >> $file_target
 }
 
 ### RUN ########################################################################
