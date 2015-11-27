@@ -41,7 +41,7 @@ function bl_mail_send
       local mail_smtp
    fi
 
-   echo $mail_msg | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
+   echo -e $mail_msg | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
 $mail_to
 }
 
