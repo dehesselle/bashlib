@@ -17,11 +17,13 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_fs
+source $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
 
-# nothing here yet
+if [ -z BL_MAIL_SMTP ]; then
+   BL_MAIL_SMTP=
+fi
 
 ### FUNCTIONS ##################################################################
 
@@ -31,18 +33,21 @@ function bl_mail_send
    local mail_sub=$2
    local mail_msg=$3
 
-   if [ -f "$mail_msg" ]; then
-      local message_file=$mail_msg
-   else
-      local message_file=$(bl_fs_new_tempfile)
-      echo -e "$mail_msg" > $message_file
-   fi
-      
-   mutt -s "$mail_sub" -- "$mail_to" < $message_file
+   local mail_from="$(whoami)@$(hostname)"
 
-   rm $message_file
+   if ! $(bl_str_is_empty $BL_MAIL_SMTP); then
+      local mail_smtp="-S smtp://$BL_MAIL_SMTP"
+   else
+      local mail_smtp
+   fi
+
+   echo $mail_msg | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
+$mail_to
 }
 
 ### RUN ########################################################################
 
-bl_dep_check_pgm mutt
+bl_dep_check_pgm mailx "mailx -V" ^[0-9]+\.[0-9]+\ [0-9]+/[0-9]+/[0-9]+$ \
+"mailx is not heirloom mailx"
+bl_dep_check_pgm whoami
+bl_dep_check_pgm hostname
