@@ -36,7 +36,7 @@ function bl_mail_send
    local mail_from="$(whoami)@$(hostname)"
 
    if ! $(bl_str_is_empty $BL_MAIL_SMTP); then
-      local mail_smtp="-S smtp://$BL_MAIL_SMTP"
+      local mail_smtp="-S smtp=smtp://$BL_MAIL_SMTP"
    else
       local mail_smtp
    fi
