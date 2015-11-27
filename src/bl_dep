@@ -35,12 +35,28 @@ fi
 bl_dep_check_pgm()
 {
    local program=$1
+   local test_command=$2
+   local test_result=$3
+   local test_hint=$4
+
    which $program 1>/dev/null 2>&1
 
    local rc=$?
 
    case $rc in
-      0) : ;;   # ok!
+      0)
+         if [ ${#test_command} -gt 0 ]; then
+            if [[ "$($test_command 2>/dev/null)" =~ $test_result ]]; then
+               :    # ok!
+            else
+               echo "[bl_dep_check] compatibility check failed: $program"
+               if [ ${#test_hint} -gt 0 ]; then
+                  echo "[bl_dep_check] hint: $test_hint"
+               fi
+               exit 1
+            fi
+         fi
+         ;;
       1)
          echo "[bl_dep_check] unresolved dependency/not in path: $program"
          exit 1
