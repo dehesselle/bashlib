@@ -48,13 +48,17 @@ function bl_run_restart_as
 
          case $(uname) in
             Linux)
+#              We can't use any wrapper-function like 'bl_run_i' or 
+#              'bl_run_nolog' since the argument-passing breaks 'su'.
                bl_log_i "restarting as '$user'"
-               bl_run_nolog su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user
+               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user
                local rc=$?
                ;;
             FreeBSD)
+#              We can't use any wrapper-function like 'bl_run_i' or 
+#              'bl_run_nolog' since the argument-passing breaks 'su'.
                bl_log_i "restarting as '$user'"
-               bl_run_nolog su -m $user -c "$0 ${BL_RUN_CMD_ARGS[@]}"
+               su -m $user -c "$0 ${BL_RUN_CMD_ARGS[@]}"
                local rc=$?
                ;;
             *)
@@ -62,7 +66,8 @@ function bl_run_restart_as
                exit 1
                ;;
          esac
-         bl_run_i "back from restart, exiting" exit $rc
+         bl_log_i "back from restart, exiting"
+         exit $rc
          ;;
       $user)
          :
@@ -81,15 +86,21 @@ function bl_run_as
 
    local rc=0
 
-   case $(woami) in
+   case $(whoami) in
       root)
          case $(uname) in
             Linux)
-               bl_run_i "running command as '$user'" su -c "$cmd" $user
+#              We can't use any wrapper-function like 'bl_run_i' or 
+#              'bl_run_nolog' since the argument-passing breaks 'su'.
+               bl_log_i "running as '$user': $cmd"
+               su -c "$cmd" $user >>$BL_LOG_FILE 2>&1
                rc=$?
                ;;
             FreeBSD)
-               bl_run_i "running command as '$user'" su -m $user -c "$cmd"
+#              We can't use any wrapper-function like 'bl_run_i' or 
+#              'bl_run_nolog' since the argument-passing breaks 'su'.
+               bl_log_i "running as '$user': $cmd"
+               su -m $user -c "$cmd" >>$BL_LOG_FILE 2>&1
                rc=$?
                ;;
             *)
@@ -99,7 +110,7 @@ function bl_run_as
          esac
          ;;
       $user)
-         bl_run_i "running comand" $cmd
+         bl_run_i "running command" $cmd
          rc=$?
          ;;
       *)
@@ -108,7 +119,7 @@ function bl_run_as
          ;;
    esac
 
-   echo $rc
+   return $rc
 }
 
 # TODO documentation: describe bl_dmn_get_pid vs bl_run_get_pid
