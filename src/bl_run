@@ -51,7 +51,7 @@ function bl_run_restart_as
 #              We can't use any wrapper-function like 'bl_run_i' or 
 #              'bl_run_nolog' since the argument-passing breaks 'su'.
                bl_log_i "restarting as '$user'"
-               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user
+               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" - $user
                local rc=$?
                ;;
             FreeBSD)
@@ -93,7 +93,7 @@ function bl_run_as
 #              We can't use any wrapper-function like 'bl_run_i' or 
 #              'bl_run_nolog' since the argument-passing breaks 'su'.
                bl_log_i "running as '$user': $cmd"
-               su -c "$cmd" $user >>$BL_LOG_FILE 2>&1
+               su -c "$cmd" - $user >>$BL_LOG_FILE 2>&1
                rc=$?
                ;;
             FreeBSD)
