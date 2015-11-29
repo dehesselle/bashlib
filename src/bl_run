@@ -26,55 +26,43 @@ source $BL_SRC/bl_str
 
 BL_RUN_CMD_ARGS=$@
 
+### SETTINGS ###################################################################
+
+# nothing here
+
 ### FUNCTIONS ##################################################################
 
 #TODO
 # check permission of script/executable if we can call it
-function bl_run_restart_as.Linux
+function bl_run_restart_as
 {
    local user=$1
-   local mode=$2
-
-   if [ "$mode" != "foreground" ]; then
-      mode=background
-   fi
 
    case $(whoami) in
       root)
 #        If this is the first time this script is run, the logfile will be
 #        owned by root and we'll get various log-related errors when this
-#        script is run again as '$user' due to file permissions.
+#        script is restarted as '$user' due to file permissions.
 #        We can prevent this error by changing the logfile's owner in advance.
          chown $user $BL_LOG_FILE
 
-#        arguments against backgrounding
-#           - inconvenient if run interactively/manually
-#           - possible race condition writing to log
-#
-#        arguments for backgrounding
-#           - no clutter with unnecessarily stalling parent process just
-#             waiting to quit
-
-         case $mode in
-            background)
-               bl_log_i "restarting as '$user' (background)"
-               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user &
-               local pid=$!
-               bl_log_i "restarted as pid $pid"
-               exit 0
-               ;;
-            foreground)
-               bl_log_i "restarting as '$user' (foreground)"
-               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user
+         case $(uname) in
+            Linux)
+               bl_log_i "restarting as '$user'"
+               bl_run_nolog su -c "$0 ${BL_RUN_CMD_ARGS[@]}" $user
                local rc=$?
-               bl_log_i "back from restart, exiting"
-               exit $rc
+               ;;
+            FreeBSD)
+               bl_log_i "restarting as '$user'"
+               bl_run_nolog su -m $user -c "$0 ${BL_RUN_CMD_ARGS[@]}"
+               local rc=$?
                ;;
             *)
-               bl_log_e "invalid mode '$mode', exiting"
+               bl_log_ee "unsupported platform: $(uname)"
                exit 1
                ;;
          esac
+         bl_run_i "back from restart, exiting" exit $rc
          ;;
       $user)
          :
@@ -86,117 +74,44 @@ function bl_run_restart_as.Linux
    esac
 }
 
-function bl_run_restart_as.FreeBSD
+function bl_run_as
 {
    local user=$1
-   local mode=$2
+   local cmd="${*:2}"   # arguments 2...n
 
-   if [ "$mode" != "foreground" ]; then
-      mode=background
-   fi
+   local rc=0
 
-   case $(whoami) in
+   case $(woami) in
       root)
-#        If this is the first time this script is run, the logfile will be
-#        owned by root and we'll get various log-related errors when this
-#        script is run again as '$user' due to file permissions.
-#        We can prevent this error by changing the logfile's owner in advance.
-         chown $user $BL_LOG_FILE
-
-#        arguments against backgrounding
-#           - inconvenient if run interactively/manually
-#           - possible race condition writing to log
-#
-#        arguments for backgrounding
-#           - no clutter with unnecessarily stalling parent process just
-#             waiting to quit
-
-         bl_log_i "backgrounding not supported on FreeBSD, forcing foreground"
-         mode=foreground
-         case $mode in
-            background)
-               bl_log_e "internal error - you should never see this"
+         case $(uname) in
+            Linux)
+               bl_run_i "running command as '$user'" su -c "$cmd" $user
+               rc=$?
                ;;
-            foreground)
-               bl_log_i "restarting as '$user' (foreground)"
-#              FreeBSD: different syntax for 'su'
-               su -m $user -c "$0 ${BL_RUN_CMD_ARGS[@]}"
-               local rc=$?
-               bl_log_i "back from restart, exiting"
-               exit $rc
+            FreeBSD)
+               bl_run_i "running command as '$user'" su -m $user -c "$cmd"
+               rc=$?
                ;;
             *)
-               bl_log_e "invalid mode '$mode', exiting"
+               bl_log_ee "unsupported platform: $(uname)"
                exit 1
                ;;
          esac
          ;;
       $user)
-         :
+         bl_run_i "running comand" $cmd
+         rc=$?
          ;;
       *)
-         bl_log_ee "This script must be run as either 'root' or '$user'."
-         exit 1
+         bl_log_e "cannot switch to user '$user'"
+         rc=1
          ;;
    esac
-}
-
-shopt -s expand_aliases
-
-alias bl_run_restart_as='bl_dep_platform_func bl_run_restart_as'
-alias bl_run_as='bl_dep_platform_func bl_run_as'
-
-function bl_run_as.Linux
-{
-   local user=$1
-   local cmd="${*:2}"   # arguments 2...n
-
-   local rc=0
-
-   if [ $UID -eq 0 ]; then
-      bl_log_i "$user: $cmd"
-      su -c "$cmd" $user 1>>$BL_LOG_FILE 2>&1
-      rc=$?
-   else
-      if [ $(whoami) = "$user" ]; then
-         bl_log_i "$cmd"
-         $cmd 1>>$BL_LOG_FILE 2>&1
-         rc=$?
-      else
-         bl_log_e "cannot switch to user '$user'"
-         rc=1
-      fi
-   fi
 
    echo $rc
 }
 
-function bl_run_as.FreeBSD
-{
-   local user=$1
-   local cmd="${*:2}"   # arguments 2...n
-
-   local rc=0
-
-   if [ $UID -eq 0 ]; then
-      bl_log_i "$user: $cmd"
-      su -m $user -c "$cmd" 1>>$BL_LOG_FILE 2>&1
-      rc=$?
-   else
-      if [ $(whoami) = "$user" ]; then
-         bl_log_i "$cmd"
-         $cmd 1>>$BL_LOG_FILE 2>&1
-         rc=$?
-      else
-         bl_log_e "cannot switch to user '$user'"
-         rc=1
-      fi
-   fi
-
-   echo $rc
-}
-
-# documentation: describe bl_dmn_get_pid vs bl_run_get_pid
+# TODO documentation: describe bl_dmn_get_pid vs bl_run_get_pid
 # used for getting a pid like while-read loops (see netstat_mon)
 function bl_run_get_pid
 {
@@ -237,4 +152,5 @@ bl_dep_check_pgm awk
 bl_dep_check_pgm grep
 bl_dep_check_pgm ps
 bl_dep_check_pgm su
+bl_dep_check_pgm uname
 bl_dep_check_pgm whoami
