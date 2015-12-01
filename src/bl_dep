@@ -39,9 +39,16 @@ bl_dep_check_pgm()
    local test_result=$3
    local test_hint=$4
 
-   which $program 1>/dev/null 2>&1
-
-   local rc=$?
+   if [[ "$program" =~ .*/.* ]]; then   # contains forward slash?
+      if [ -x "$program" ]; then   # program found and executable?
+         local rc=0
+      else
+         local rc=1
+      fi
+   else
+      which $program 1>/dev/null 2>&1   # look for program in path
+      local rc=$?
+   fi
 
    case $rc in
       0)
@@ -58,7 +65,7 @@ bl_dep_check_pgm()
          fi
          ;;
       1)
-         echo "[bl_dep_check] unresolved dependency/not in path: $program"
+         echo "[bl_dep_check] unresolved dependency or not in path: $program"
          exit 1
          ;;
       2)
