@@ -25,6 +25,7 @@ source $BL_SRC/bl_str
 ### VARIABLES ##################################################################
 
 BL_RUN_CMD_ARGS=$@
+BL_RUN_MYSELF=$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME
 
 ### SETTINGS ###################################################################
 
@@ -32,8 +33,6 @@ BL_RUN_CMD_ARGS=$@
 
 ### FUNCTIONS ##################################################################
 
-#TODO
-# check permission of script/executable if we can call it
 function bl_run_restart_as
 {
    local user=$1
@@ -48,17 +47,13 @@ function bl_run_restart_as
 
          case $(uname) in
             Linux)
-#              We can't use any wrapper-function like 'bl_run_i' or 
-#              'bl_run_nolog' since the argument-passing breaks 'su'.
-               bl_log_i "restarting as '$user'"
-               su -c "$0 ${BL_RUN_CMD_ARGS[@]}" - $user
+               bl_run_i "restarting as '$user'" \
+su -c "\"$BL_RUN_MYSELF ${BL_RUN_CMD_ARGS[@]}\"" - $user
                local rc=$?
                ;;
             FreeBSD)
-#              We can't use any wrapper-function like 'bl_run_i' or 
-#              'bl_run_nolog' since the argument-passing breaks 'su'.
-               bl_log_i "restarting as '$user'"
-               su -m $user -c "$0 ${BL_RUN_CMD_ARGS[@]}"
+               bl_run_i "restarting as '$user'" \
+su -m $user -c "\"$BL_RUN_MYSELF ${BL_RUN_CMD_ARGS[@]}\""
                local rc=$?
                ;;
             *)
@@ -70,7 +65,7 @@ function bl_run_restart_as
          exit $rc
          ;;
       $user)
-         :
+         :   # already running as the user we need to be
          ;;
       *)
          bl_log_ee "This script must be run as either 'root' or '$user'."
@@ -90,17 +85,11 @@ function bl_run_as
       root)
          case $(uname) in
             Linux)
-#              We can't use any wrapper-function like 'bl_run_i' or 
-#              'bl_run_nolog' since the argument-passing breaks 'su'.
-               bl_log_i "running as '$user': $cmd"
-               su -c "$cmd" - $user >>$BL_LOG_FILE 2>&1
+               bl_run_i "running as '$user'" su -c "\"$cmd\"" - $user
                rc=$?
                ;;
             FreeBSD)
-#              We can't use any wrapper-function like 'bl_run_i' or 
-#              'bl_run_nolog' since the argument-passing breaks 'su'.
-               bl_log_i "running as '$user': $cmd"
-               su -m $user -c "$cmd" >>$BL_LOG_FILE 2>&1
+               bl_run_i "running as '$user'" su -m $user -c "\"$cmd\""
                rc=$?
                ;;
             *)
@@ -165,3 +154,8 @@ bl_dep_check_pgm ps
 bl_dep_check_pgm su
 bl_dep_check_pgm uname
 bl_dep_check_pgm whoami
+
+if [ ! -x $BL_RUN_MYSELF ]; then
+   bl_log_ee "This script is not executable by $(whoami)."
+   exit 1
+fi
