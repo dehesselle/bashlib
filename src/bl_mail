@@ -31,7 +31,8 @@ function bl_mail_send
 {
    local mail_to=$1
    local mail_sub=$2
-   local mail_msg=$3
+   local mail_msg=$3   # mail body
+   local mail_att=$4   # attachment
 
    local mail_from="$(whoami)@$(hostname)"
 
@@ -41,8 +42,17 @@ function bl_mail_send
       local mail_smtp
    fi
 
+   if ! $(bl_str_is_empty $mail_att); then
+      mail_att="-a $mail_att"
+   fi
+
+#  Some variants of "heirloom mailx" turn the message body into an attachment
+#  if they encounter characters (e.g. German Umlauts) that they can't handle.
+#  An easy fix is to filter the message body through 'iconv':
+#     iconv -f utf8 -t ascii//TRANSLIT <myfile> 
+
    echo -e $mail_msg | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
-$mail_to
+$mail_att $mail_to
 }
 
 ### RUN ########################################################################
