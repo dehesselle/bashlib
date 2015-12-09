@@ -51,7 +51,7 @@ function bl_mail_send
 #  An easy fix is to filter the message body through 'iconv':
 #     iconv -f utf8 -t ascii//TRANSLIT <myfile> 
 
-   echo -e $mail_msg | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
+   echo -e "$mail_msg" | mailx -s "$mail_sub" -S from="$mail_from" $mail_smtp \
 $mail_att $mail_to
 }
 
