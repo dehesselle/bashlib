@@ -28,16 +28,20 @@ fi
 
 ### FUNCTIONS ##################################################################
 
-# Since we're also checking for the presence of bash we need to keep the
-# function definition posix-style here. What happens inside a function is
-# not required to be posix.
+# Since we're going to check for the presence of bash (see 'RUN' below) we need
+# to keep the function definitions posix-style here. The function body is not
+# required to be posix for e.g. 'sh' not to throw errors when reading this file.
 
+# Check if a required program can be found (through '$PATH') and is executable.
+# You can also supply a test command and an expected result, e.g. to check
+# for a specific version.
+# If the given program is not found, exit with rc 1.
 bl_dep_check_pgm()
 {
    local program=$1
-   local test_command=$2
-   local test_result=$3
-   local test_hint=$4
+   local test_command=$2   # optional: test command to be executed
+   local test_result=$3    # a bash-style regex describing the expected result
+   local test_hint=$4      # will be echo'ed if the above test fails
 
    if [[ "$program" =~ .*/.* ]]; then   # contains forward slash?
       if [ -x "$program" ]; then   # program found and executable?
@@ -83,11 +87,13 @@ bl_dep_check_pgm()
    esac
 }
 
+# Check if a function with the given name already exists.
 bl_dep_check_func()
 {
    declare -F $1 &>/dev/null && echo true || echo false
 }
 
+# TODO: this will most likely be deprecated very soon
 bl_dep_platform_func()
 {
    local func_name=$1
@@ -109,6 +115,9 @@ if   [ -z $BASH ]; then
    echo "[bl_dep] This scripts needs 'bash' to run."
    exit 1
 elif [ ! -z $POSIXLY_CORRECT ]; then
+#  '$POSIXLY_CORRECT' can happen if bash executes scripts that have
+#  the '#!/bin/sh' shebang, e.g. on system where bash is the only available
+#  shell
    echo "[bl_dep] This script cannot run in bash's posix-only mode."
    exit 1
 elif [ ${BASH_VERSINFO[0]} -lt 4 ]; then
