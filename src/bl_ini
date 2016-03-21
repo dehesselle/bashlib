@@ -24,7 +24,7 @@ source $BL_SRC/bl_str
 ### VARIABLES ##################################################################
 
 # These arrays hold all the data that is read/written from/to *.ini files.
-# Calling 'bl_ini_set' and 'bl_ini_get' writes/reads to them.
+# Calling 'bl_ini_set' and 'bl_ini_get' writes/reads them.
 declare -a BL_INI_SECTION
 declare -a BL_INI_KEY
 declare -a BL_INI_VALUE
@@ -35,8 +35,12 @@ if [ -z $BL_INI_DIR ]; then
    BL_INI_DIR=$BL_FS_MYSELF_DIR
 fi
 
+if [ -z $BL_INI_FILE_NAME ]; then
+   BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME.ini
+fi
+
 if [ -z $BL_INI_FILE ]; then
-   BL_INI_FILE=$BL_INI_DIR/$BL_FS_MYSELF_NAME.ini
+   BL_INI_FILE=$BL_INI_DIR/$BL_INI_FILE_NAME
 fi
 
 BL_INI_SECTION_REGEX=[A-Za-z0-9_]+
@@ -207,7 +211,7 @@ function bl_ini_set
 
 # bl_ini_write {filename}
 #
-# {filename}     write to this file
+# filename     write to this file
 #
 function bl_ini_write
 {
