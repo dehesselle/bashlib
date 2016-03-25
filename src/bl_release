@@ -21,7 +21,7 @@ fi
 
 ### VARIABLES ##################################################################
 
-BL_RELEASE_VERSION="0.19.0"
+BL_RELEASE_VERSION="0.20.0"
 
 # TODO
 # Everything below is old - need to think about how I want to proceed here.
