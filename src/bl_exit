@@ -41,6 +41,17 @@ if [ $UID -ne 0 ]; then
    bl_exit_now
 fi'
 
+#  Exiting is not ideal since it'll quit your interactive shell if you
+#  actually sourced the script. This will make you ask "WTF just happend?!"
+#  until you remember that this is a flawed design in lack of better
+#  alternatives. But it's still safer to stop things here than to boldly go
+#  where noone has gone before.
+alias bl_exit_if_sourced='
+if [ x"${BASH_SOURCE[0]}" != x"$0" ]; then
+   bl_log_ee "This script cannot be sourced."
+   bl_exit_now
+fi'
+
 function bl_exit_if_not_platform
 {
    local found=false
