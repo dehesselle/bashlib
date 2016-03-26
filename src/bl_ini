@@ -1,10 +1,15 @@
 ################################################################################
 #                                                                              #
-#   bl_ini:  reading and writing *.ini files                                   #
-#                                                                              #
-#                                                                              #
+#   bl_ini - reading and writing INI files                                     #
 #                                                                              #
 #   https://github.com/dehesselle/bashlib                                      *
+#                                                                              #
+################################################################################
+#                                                                              #
+#   remarks                                                                    #
+#   -------                                                                    #
+#                                                                              #
+#   - not designed to handle multiple INI files simultaneously                 #
 #                                                                              #
 ################################################################################
 
@@ -23,7 +28,7 @@ source $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
 
-# These arrays hold all the data that is read/written from/to *.ini files.
+# These arrays hold all the data that is read/written from/to INI files.
 # Calling 'bl_ini_set' and 'bl_ini_get' writes/reads them.
 declare -a BL_INI_SECTION
 declare -a BL_INI_KEY
@@ -50,18 +55,18 @@ BL_INI_KEY_REGEX=[A-Za-z]{1}[A-Za-z0-9_]*
 
 # bl_ini_read {filename}
 #
-# filename     read the data from this *.ini file
+# filename     read the data from this INI file
 #
 function bl_ini_read
 {
    local file=$1
 
    if   [ ! -f $file ]; then
-      bl_log_e "file not found: $(bl_fs_get_filename $file)"
+      bl_log_e "settings not found: $(bl_fs_get_filename $file)"
    elif [ ! -r $file ]; then
-      bl_log_e "file not readable: $(bl_fs_get_filename $file)"
+      bl_log_e "settings not readable: $(bl_fs_get_filename $file)"
    else
-      bl_log_i "file: $file"
+      bl_log_i "settings: $file"
 
       local section=global
       local line_count=0
@@ -116,14 +121,21 @@ function bl_ini_get
    if [[ $section_key =~ ^(${BL_INI_SECTION_REGEX})\.(${BL_INI_KEY_REGEX})$ ]]; then
       local section=${BASH_REMATCH[1]}
       local key=${BASH_REMATCH[2]}
+      local value=
 
       for ((i=0; i<$BL_INI_KEY_COUNT; i++)); do
          if    [ ${BL_INI_KEY[$i]} = $key ] &&
                [ ${BL_INI_SECTION[$i]} = $section ]; then
-            echo "${BL_INI_VALUE[$i]}"
+            value="${BL_INI_VALUE[$i]}"
             break
          fi
       done
+
+      if $(bl_str_is_empty $value); then
+         bl_log_e "missing value: $section_key"
+      else
+         echo $value
+      fi
    else
       bl_log_e "invalid argument: $section_key"
    fi
@@ -253,7 +265,9 @@ function bl_ini_write
 
 ### RUN ########################################################################
 
-# automatically read the *.ini file if there's one
+# automatically read the INI file
 if [ -f $BL_INI_FILE ]; then
    bl_ini_read $BL_INI_FILE
+else
+   bl_log_w "settings not found: $BL_INI_FILE"
 fi
