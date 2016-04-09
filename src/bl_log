@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_LOG_INCLUDED ]; then
-   BL_LOG_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_LOG_INCLUDED ] && BL_LOG_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -25,21 +21,13 @@ source $BL_SRC/bl_ui
 
 ### VARIABLES ##################################################################
 
-if [ -z $BL_LOG_DEBUG_ENABLE ]; then
-   BL_LOG_DEBUG_ENABLE=false
-fi
+[ -z $BL_LOG_DEBUG_ENABLE ] && BL_LOG_DEBUG_ENABLE=false
 
-if [ -z $BL_LOG_DIR ]; then
-   BL_LOG_DIR=/tmp
-fi
+[ -z $BL_LOG_DIR ] && BL_LOG_DIR=/tmp
 
-if [ -z $BL_LOG_FILE_NAME ]; then
-   BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME.log
-fi
+[ -z $BL_LOG_FILE_NAME ] && BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME.log
 
-if [ -z $BL_LOG_FILE ]; then
-   BL_LOG_FILE=$BL_LOG_DIR/$BL_LOG_FILE_NAME
-fi
+[ -z $BL_LOG_FILE ] && BL_LOG_FILE=$BL_LOG_DIR/$BL_LOG_FILE_NAME
 
 BL_LOG_USER=$(whoami)
 

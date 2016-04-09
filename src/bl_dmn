@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_DMN_INCLUDED ]; then
-   BL_DMN_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_DMN_INCLUDED ] && BL_DMN_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -25,9 +21,7 @@ source $BL_SRC/bl_ui
 
 ### VARIABLES ##################################################################
 
-if [ -z $BL_DMN_PID_DIR ]; then
-   BL_DMN_PID_DIR=$BL_FS_TMP_DIR
-fi
+[ -z $BL_DMN_PID_DIR ] && BL_DMN_PID_DIR=$BL_FS_TMP_DIR
 
 BL_DMN_PIDFILE=$BL_DMN_PID_DIR/$BL_FS_MYSELF_NAME.pid
 
@@ -132,9 +126,7 @@ function bl_dmn_stop
          bl_log_ee "failed to stop $BL_FS_MYSELF_NAME"
          bl_dmn_stop_rc=1
       else
-         if [ -f $BL_DMN_PIDFILE ]; then
-            bl_run rm $BL_DMN_PIDFILE
-         fi
+         [ -f $BL_DMN_PIDFILE ] && bl_run rm $BL_DMN_PIDFILE
       fi
    else
       bl_log_ii "nothing to stop"
@@ -176,15 +168,11 @@ function bl_dmn_dispatch
 
    local bl_dmn_dispatch_rc=0
 
-   if [ $# -gt 2 ]; then
-      bl_log_w "only processing first two arguments"
-   fi
+   [ $# -gt 2 ] && bl_log_w "only processing first two arguments"
 
    bl_log_i "command: $command"
 
-   if ! $(bl_str_is_empty $parameter); then
-      bl_log_i "parameter: $parameter"
-   fi
+   ! $(bl_str_is_empty $parameter) && bl_log_i "parameter: $parameter"
 
    case "$command" in
       start)

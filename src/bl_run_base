@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_RUN_BASE_INCLUDED ]; then
-   BL_RUN_BASE_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_RUN_BASE_INCLUDED ] && BL_RUN_BASE_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 

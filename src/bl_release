@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_RELEASE_INCLUDED ]; then
-   BL_RELEASE_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_RELEASE_INCLUDED ] && BL_RELEASE_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 

@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_FS_BASE_INCLUDED ]; then
-   BL_FS_BASE_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_FS_BASE_INCLUDED ] && BL_FS_BASE_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -25,9 +21,7 @@ if [ -z $BL_FS_MYSELF_NAME ]; then
    BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)   # get part after last slash
 fi
 
-if [ -z $BL_FS_TMP_DIR ]; then
-   BL_FS_TMP_DIR=/tmp
-fi
+[ -z $BL_FS_TMP_DIR ] && BL_FS_TMP_DIR=/tmp
 
 ### FUNCTIONS ##################################################################
 

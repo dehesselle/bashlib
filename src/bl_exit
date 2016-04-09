@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_EXIT_INCLUDED ]; then
-   BL_EXIT_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_EXIT_INCLUDED ] && BL_EXIT_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 

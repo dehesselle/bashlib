@@ -13,11 +13,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_INI_INCLUDED ]; then
-   BL_INI_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_INI_INCLUDED ] && BL_INI_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -36,17 +32,11 @@ declare -a BL_INI_VALUE
 
 BL_INI_KEY_COUNT=0
 
-if [ -z $BL_INI_DIR ]; then
-   BL_INI_DIR=$BL_FS_MYSELF_DIR
-fi
+[ -z $BL_INI_DIR ] && BL_INI_DIR=$BL_FS_MYSELF_DIR
 
-if [ -z $BL_INI_FILE_NAME ]; then
-   BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME.ini
-fi
+[ -z $BL_INI_FILE_NAME ] && BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME.ini
 
-if [ -z $BL_INI_FILE ]; then
-   BL_INI_FILE=$BL_INI_DIR/$BL_INI_FILE_NAME
-fi
+[ -z $BL_INI_FILE ] && BL_INI_FILE=$BL_INI_DIR/$BL_INI_FILE_NAME
 
 BL_INI_SECTION_REGEX=[A-Za-z0-9_]+
 BL_INI_KEY_REGEX=[A-Za-z]{1}[A-Za-z0-9_]*
@@ -153,9 +143,8 @@ function bl_ini_get_list
    local separator=$2
    local count=$3
 
-   if $(bl_str_is_empty "$separator"); then   # quot. marks handle whitespace
-      separator=" "
-   fi
+#  quotation marks handle whitspace
+   $(bl_str_is_empty "$separator") && separator=" "
 
    if $(bl_str_is_empty $count); then
 

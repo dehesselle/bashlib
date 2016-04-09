@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_FS_INCLUDED ]; then
-   BL_FS_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_FS_INCLUDED ] && BL_FS_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -108,11 +104,7 @@ function bl_fs_get_dirname
 {
    local dirname=$(bl_fs_get_name $1)
 
-   if [ "$dirname"  = "/" ]; then
-      echo $dirname
-   else
-      echo ${dirname##*/}
-   fi
+   [ "$dirname"  = "/" ] && echo $dirname || echo ${dirname##*/}
 }
 
 function bl_fs_get_size
@@ -134,21 +126,15 @@ function bl_fs_is_file_writable
 {
    local file=$1
 
-   if [ -f $file ]; then
-      local file_exists=true
-   else
-      local file_exists=false
-   fi
+   [ -f $file ] && local file_exists=true || local file_exists=false
 
    touch $file 1>/dev/null 2>&1
    local rc=$?
 
    if [ $rc -eq 0 ]; then
-      if ! $file_exists; then
-#        If we've been checking "theoretically" - i.e. checking a file that didn't
-#        exist prior to this check - we clean up afterwards.
-         rm $file
-      fi
+#     If we've been checking "theoretically" - i.e. checking a file that didn't
+#     exist prior to this check - we clean up afterwards.
+      ! $file_exists && rm $file
 
       echo true
    else
