@@ -18,19 +18,12 @@
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_fs
-source $BL_SRC/bl_log
-source $BL_SRC/bl_str
+. $BL_SRC/bl_fs
+. $BL_SRC/bl_kvs
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
-
-# These arrays hold all the data that is read/written from/to INI files.
-# Calling 'bl_ini_set' and 'bl_ini_get' writes/reads them.
-declare -a BL_INI_SECTION
-declare -a BL_INI_KEY
-declare -a BL_INI_VALUE
-
-BL_INI_KEY_COUNT=0
 
 [ -z $BL_INI_DIR ] && BL_INI_DIR=$BL_FS_MYSELF_DIR
 
@@ -38,8 +31,9 @@ BL_INI_KEY_COUNT=0
 
 [ -z $BL_INI_FILE ] && BL_INI_FILE=$BL_INI_DIR/$BL_INI_FILE_NAME
 
-BL_INI_SECTION_REGEX=[A-Za-z0-9_]+
-BL_INI_KEY_REGEX=[A-Za-z]{1}[A-Za-z0-9_]*
+### SETTINGS ###################################################################
+
+shopt -s expand_aliases
 
 ### FUNCTIONS ##################################################################
 
@@ -59,77 +53,35 @@ function bl_ini_read
       bl_log_i "settings: $file"
 
       local section=global
-      local line_count=0
-
-      BL_INI_KEY_COUNT=0
+      local count=0
 
       while read line || [ -n "$line" ]; do
-         ((line_count++))
+         ((count++))
 
          if   $(bl_str_is_empty $line); then
             :   # empty line, do nothing
          elif [[ $line =~ ^(\ )*#.* ]]; then
             :   # comment, do nothing
-         elif [[ $line =~ ^\[(.+)\].* ]]; then
+         elif [[ $line =~ ^\[(${BL_KVS_BRANCH_REGEX})\].* ]]; then
 #           it's a section header
             section=${BASH_REMATCH[1]}
-         elif [[ $line =~ ^(${BL_INI_KEY_REGEX})\ *=\ *(.*) ]]; then
+         elif [[ $line =~ ^(${BL_KVS_LEAF_REGEX})\ *=\ *(.*) ]]; then
 #           it's a key-value pair, i.e. "key = value"
+            local key=$section.${BASH_REMATCH[1]}
+            local value=${BASH_REMATCH[2]}
 
-            BL_INI_SECTION[$BL_INI_KEY_COUNT]=$section
-            BL_INI_KEY[$BL_INI_KEY_COUNT]=${BASH_REMATCH[1]}
-            BL_INI_VALUE[$BL_INI_KEY_COUNT]=${BASH_REMATCH[2]}
-
-            ((BL_INI_KEY_COUNT++))
+            BL_KVS_DATA[$key]="$value"
          else
-            bl_log_e "malformed line $line_count in $(bl_fs_get_filename $file)"
+            bl_log_e "malformed line $count in $(bl_fs_get_filename $file)"
             bl_log_d "line $line_count: '$line'"
          fi
 
       done < $file
    fi
-
-# for debugging purposes only
-#
-#   for i in {1..5}; do
-#      echo "s[${BL_INI_SECTION[$i]}]"
-#      echo "k[${BL_INI_KEY[$i]}]"
-#      echo "v[${BL_INI_VALUE[$i]}]"
-#   done
 }
 
-# bl_ini_get {section.key}
-#
-# section.key     section and key to assign a value to, separated by a dot
-# value           the value to be assigned to the key
-#
-function bl_ini_get
-{
-#  '$section_key' is supposed to be "section.key"
-   local section_key=$1
-
-   if [[ $section_key =~ ^(${BL_INI_SECTION_REGEX})\.(${BL_INI_KEY_REGEX})$ ]]; then
-      local section=${BASH_REMATCH[1]}
-      local key=${BASH_REMATCH[2]}
-      local value=
-
-      for ((i=0; i<$BL_INI_KEY_COUNT; i++)); do
-         if    [ ${BL_INI_KEY[$i]} = $key ] &&
-               [ ${BL_INI_SECTION[$i]} = $section ]; then
-            value="${BL_INI_VALUE[$i]}"
-            break
-         fi
-      done
-
-      if $(bl_str_is_empty $value); then
-         bl_log_e "missing value: $section_key"
-      else
-         echo $value
-      fi
-   else
-      bl_log_e "invalid argument: $section_key"
-   fi
-}
+alias bl_ini_get='bl_kvs_get'
+alias bl_ini_set='bl_kvs_set'
 
 # bl_ini_get_list section.key [separator] [count]
 #
@@ -139,80 +91,44 @@ function bl_ini_get
 #
 function bl_ini_get_list
 {
-   local section_key=$1
+   local key=$1
    local separator=$2
    local count=$3
 
-#  quotation marks handle whitspace
+#  quotation marks handle whitespace
    $(bl_str_is_empty "$separator") && separator=" "
 
-   if $(bl_str_is_empty $count); then
+   local branch=$(bl_kvs_key_get_part branch $key)
 
-      if [[ $section_key =~ (${BL_INI_SECTION_REGEX})\.(${BL_INI_KEY_REGEX}) ]]; then
-         local section=${BASH_REMATCH[1]}
-         local key=${BASH_REMATCH[2]}
-         count=$(bl_ini_get $section.count)
-      else
-         bl_log_e "invalid argument: $section_key"
-         count=0
-      fi
-
+   if $(bl_str_is_empty $branch); then
+      count=0   # disable the 'for' loop below
+      bl_log_e "invalid key: $key"
+   else
       if $(bl_str_is_empty $count); then
-         bl_log_e "missing value for 'count'"
-         count=0
+         count=$(bl_kvs_get $branch.count)
+         
+         if $(bl_str_is_empty $count); then
+            bl_log_e "no value for 'count'"
+            count=0   # disable the 'for' loop below
+         fi
       fi
    fi
 
-   local list=
+   local list
    for ((i=0; i<$count; i++)); do
       if [ $i -gt 0 ]; then
-         list="$list$separator$(bl_ini_get $section_key$i)"
+         list="$list$separator$(bl_kvs_get $key$i)"
       else
-         list=$(bl_ini_get $section_key$i)
+         list=$(bl_kvs_get $key)
       fi
    done
+
    echo $list
-}
-
-# bl_ini_set {section.key} {value}
-#
-# section.key     section and key to assign a value to, separated by a dot
-# value           the value to be assigned to the key
-#
-function bl_ini_set
-{
-   local section_key=$1
-   local value=$2
-
-   if [[ $section_key =~ (${BL_INI_SECTION_REGEX})\.(${BL_INI_KEY_REGEX}) ]]; then
-      local section=${BASH_REMATCH[1]}
-      local key=${BASH_REMATCH[2]}
-      local key_found=false
-
-      for ((i=1; i<=$BL_INI_KEY_COUNT; i++)); do
-         if    [ ${BL_INI_KEY[$i]} = $key ] &&
-               [ ${BL_INI_SECTION[$i]} = $section ]; then
-            BL_INI_VALUE[$i]=$value
-            key_found=true
-            break
-         fi
-      done
-
-      if ! $key_found; then
-         ((BL_INI_KEY_COUNT++))
-         BL_INI_SECTION[$BL_INI_KEY_COUNT]=$section
-         BL_INI_KEY[$BL_INI_KEY_COUNT]=$key
-         BL_INI_VALUE[$BL_INI_KEY_COUNT]=$value
-      fi
-
-   else
-      bl_log_e "invalid argument: $section_key"
-   fi
 }
 
 # bl_ini_write {filename}
 #
-# filename     write to this file
+# {filename}     write to this file
 #
 function bl_ini_write
 {
@@ -220,43 +136,29 @@ function bl_ini_write
 
    > $file   # truncate file
 
-#  get a list of all sections
-   local sections=
-   for (( i=1; i<=$BL_INI_KEY_COUNT; i++ )); do
-      if [[ $sections != *${BL_INI_SECTION[$i]}* ]]; then
-         sections="$sections ${BL_INI_SECTION[$i]}"
+#  This only works because keys in an associative array are automatically
+#  sorted.
+
+   local section_old
+
+   for i in "${!BL_KVS_DATA[@]}"; do
+      local branch=$(bl_kvs_key_get_part branch $i)
+      local leaf=$(bl_kvs_key_get_part leaf $i)
+
+      if [ "$section_old" != "$branch" ]; then
+         echo "" >> $file
+         echo "[$branch]" >> $file   # section header
       fi
-   done
 
-   bl_log_d "sections: $sections"
+      echo "$leaf = ${BL_KVS_DATA[$i]}" >> $file
 
-   for section in $sections; do
-      echo "[$section]" >> $file   # section header
-
-# write all key-value pairs for that section
-      for ((i=1; i<=$BL_INI_KEY_COUNT; i++)); do
-         if [[ ${BL_INI_SECTION[$i]} = $section ]]; then
-# TODO: Do we want this? Need to look up if there's a standard.
-# ---
-# add quotation marks to enclose the value if it contains spaces
-#            if [[ ${BL_INI_VALUE[$i]:0:1} != \" ]] &&
-#               [[ ${BL_INI_VALUE[$i]} = *" "* ]]; then
-#               echo "${BL_INI_KEY[$i]} = \"${BL_INI_VALUE[$i]}\"" >> $file
-#            else
-               echo "${BL_INI_KEY[$i]} = ${BL_INI_VALUE[$i]}" >> $file
-#            fi
-         fi
-      done
-
-      echo "" >> $file   # newline to separate sections visually
+      section_old=$branch
    done
 }
 
 ### RUN ########################################################################
 
-# automatically read the INI file
+# automatically read the INI file if there's one
 if [ -f $BL_INI_FILE ]; then
    bl_ini_read $BL_INI_FILE
-else
-   bl_log_w "settings not found: $BL_INI_FILE"
 fi
