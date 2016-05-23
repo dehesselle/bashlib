@@ -22,7 +22,7 @@ fi
 ### VARIABLES ##################################################################
 
 if [ -z $BL_FS_TMP_DIR ]; then
-   BL_FS_TMP_DIR=/tmp
+   BL_FS_TMP_DIR=
 fi
 
 if [ -z $BL_FS_MYSELF_NAME ]; then
@@ -79,6 +79,7 @@ function bl_fs_get_name
 ### RUN ########################################################################
 
 bl_dep_check_pgm dirname
+bl_dep_check_pgm mktemp
 bl_dep_check_pgm readlink
 
 if $(bl_str_is_empty $BL_FS_MYSELF_NAME); then
@@ -96,4 +97,8 @@ fi
 
 if $(bl_str_is_empty $BL_FS_MYSELF_DIR_CANONICAL); then
    BL_FS_MYSELF_DIR_CANONICAL=$(dirname $(bl_fs_get_name $0))
+fi
+
+if $(bl_str_is_empty $BL_FS_TMP_DIR); then
+   BL_FS_TMP_DIR=$(dirname $(mktemp))   # use 'mktemp' to detect temp directory
 fi
