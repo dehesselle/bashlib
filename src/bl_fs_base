@@ -22,7 +22,7 @@ source $BL_SRC/bl_str
 ### VARIABLES ##################################################################
 
 if [ -z $BL_FS_MYSELF_NAME ]; then
-   BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)   # get part after last slash
+   BL_FS_MYSELF_NAME=
 fi
 
 if [ -z $BL_FS_TMP_DIR ]; then
@@ -35,4 +35,8 @@ fi
 
 ### RUN ########################################################################
 
-# nothing here
+if $(bl_str_is_empty $BL_FS_MYSELF_NAME); then
+#  FIXME potentially dangerous if there are more than 99 slashes
+#  better replace this with bash's string substitution 
+   BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)   # get part after last slash
+fi

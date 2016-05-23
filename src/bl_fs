@@ -24,7 +24,9 @@ source $BL_SRC/bl_log
 
 ### VARIABLES ##################################################################
 
-BL_FS_MYSELF_DIR=
+if [ -z $BL_FS_MYSELF_DIR ]; then
+   BL_FS_MYSELF_DIR=
+fi
 
 ### FUNCTIONS ##################################################################
 
@@ -43,8 +45,10 @@ function bl_fs_get_name
 {
    local file=$1
 
+
    case $(uname) in
       Linux) echo $(readlink -f $file  )    ;;
+#       TODO maybe check for presence of 'greadlink' on non-Linux OS?
           *) echo $(bl_fs_readlink_f $file) ;;
    esac
 }
@@ -245,7 +249,9 @@ bl_dep_check_pgm stat
 bl_dep_check_pgm tail
 bl_dep_check_pgm wc
 
-BL_FS_MYSELF_DIR=$(dirname $(bl_fs_get_name $0))
+if $(bl_str_is_empty $BL_FS_MYSELF_DIR); then
+   BL_FS_MYSELF_DIR=$(dirname $(bl_fs_get_name $0))
+fi
 
 if ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
    bl_log_ee "directory for temporary files not writable: $BL_FS_TMP_DIR"
