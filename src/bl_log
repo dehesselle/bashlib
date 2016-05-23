@@ -34,7 +34,7 @@ if [ -z $BL_LOG_CANONICAL_ENABLE ]; then
 fi
 
 if [ -z $BL_LOG_DIR ]; then
-   BL_LOG_DIR=/tmp
+   BL_LOG_DIR=$BL_FS_TMP_DIR
 fi
 
 if [ -z $BL_LOG_FILE_NAME ]; then
