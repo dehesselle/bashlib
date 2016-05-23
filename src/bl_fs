@@ -28,6 +28,14 @@ if [ -z $BL_FS_MYSELF_DIR ]; then
    BL_FS_MYSELF_DIR=
 fi
 
+if [ -z $BL_FS_MYSELF_DIR_RESOLVED ]; then
+   BL_FS_MYSELF_DIR_RESOLVED=
+fi
+
+if [ -z $BL_FS_MYSELF_NAME_RESOLVED ]; then
+   BL_FS_MYSELF_NAME_RESOLVED=
+fi
+
 ### FUNCTIONS ##################################################################
 
 function bl_fs_new_tempfile
@@ -250,7 +258,16 @@ bl_dep_check_pgm tail
 bl_dep_check_pgm wc
 
 if $(bl_str_is_empty $BL_FS_MYSELF_DIR); then
-   BL_FS_MYSELF_DIR=$(dirname $(bl_fs_get_name $0))
+   BL_FS_MYSELF_DIR=$(readlink -f $(dirname $0))
+fi
+
+if $(bl_str_is_empty $BL_FS_MYSELF_DIR_RESOLVED); then
+   BL_FS_MYSELF_DIR_RESOLVED=$(dirname $(readlink -f $0))
+fi
+
+if $(bl_str_is_empty $BL_FS_MYSELF_NAME_RESOLVED); then
+   BL_FS_MYSELF_NAME_RESOLVED=$(readlink -f $0)
+   BL_FS_MYSELF_NAME_RESOLVED=${BL_FS_MYSELF_NAME_RESOLVED##*/}
 fi
 
 if ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
