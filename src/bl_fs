@@ -25,17 +25,7 @@ fi
 
 ### VARIABLES ##################################################################
 
-if [ -z $BL_FS_MYSELF_DIR ]; then
-   BL_FS_MYSELF_DIR=
-fi
-
-if [ -z $BL_FS_MYSELF_DIR_RESOLVED ]; then
-   BL_FS_MYSELF_DIR_RESOLVED=
-fi
-
-if [ -z $BL_FS_MYSELF_NAME_RESOLVED ]; then
-   BL_FS_MYSELF_NAME_RESOLVED=
-fi
+# nothing here
 
 ### SETTINGS ###################################################################
 
@@ -73,17 +63,6 @@ function _bl_fs_new_temp
 
 alias bl_fs_new_tempfile='_bl_fs_new_temp false'
 alias bl_fs_new_tempdir='_bl_fs_new_temp true'
-
-function bl_fs_get_name
-{
-   local file=$1
-
-   case $(uname) in
-      Linux) echo $(readlink -f $file) ;;
-#       TODO maybe check for presence of 'greadlink' on non-Linux OS?
-          *) echo $(bl_fs_readlink_f $file) ;;
-   esac
-}
 
 function bl_fs_get_filename_fq
 {
@@ -245,28 +224,6 @@ function bl_fs_keep_recent
    done
 }
 
-# This is a substitute for 'readlink -f' which is missing on *BSD.
-# (hint: GNU coreutils provide 'greadlink -f' on *BSD)
-#
-# source: http://stackoverflow.com/questions/1055671/
-function bl_fs_readlink_f
-{
-   local file=$1
-
-   cd $(dirname $file)
-   file=$(basename $file)
-
-   while [ -L "$file" ]; do
-      file=$(readlink $file)
-      cd $(dirname $file)
-      file=$(basename $file)
-   done
-
-   local dir=$(pwd -P)
-
-   echo $dir/$file
-}
-
 ### RUN ########################################################################
 
 bl_dep_check_pgm basename
@@ -276,24 +233,10 @@ bl_dep_check_pgm find
 #bl_dep_check md5sum
 bl_dep_check_pgm mktemp
 bl_dep_check_pgm pwd
-bl_dep_check_pgm readlink
 bl_dep_check_pgm sort
 bl_dep_check_pgm stat
 bl_dep_check_pgm tail
 bl_dep_check_pgm wc
-
-if $(bl_str_is_empty $BL_FS_MYSELF_DIR); then
-   BL_FS_MYSELF_DIR=$(bl_fs_get_name $(dirname $0))
-fi
-
-if $(bl_str_is_empty $BL_FS_MYSELF_DIR_RESOLVED); then
-   BL_FS_MYSELF_DIR_RESOLVED=$(dirname $(bl_fs_get_name $0))
-fi
-
-if $(bl_str_is_empty $BL_FS_MYSELF_NAME_RESOLVED); then
-   BL_FS_MYSELF_NAME_RESOLVED=$(bl_fs_get_name $0)
-   BL_FS_MYSELF_NAME_RESOLVED=${BL_FS_MYSELF_NAME_RESOLVED##*/}
-fi
 
 if ! $(bl_fs_is_dir_writable $BL_FS_TMP_DIR); then
    bl_log_ee "directory for temporary files not writable: $BL_FS_TMP_DIR"

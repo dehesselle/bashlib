@@ -17,24 +17,83 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_str
+. $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
-
-if [ -z $BL_FS_MYSELF_NAME ]; then
-   BL_FS_MYSELF_NAME=
-fi
 
 if [ -z $BL_FS_TMP_DIR ]; then
    BL_FS_TMP_DIR=/tmp
 fi
 
+if [ -z $BL_FS_MYSELF_NAME ]; then
+   BL_FS_MYSELF_NAME=
+fi
+
+if [ -z $BL_FS_MYSELF_NAME_CANONICAL ]; then
+   BL_FS_MYSELF_NAME_CANONICAL=
+fi
+
+if [ -z $BL_FS_MYSELF_DIR ]; then
+   BL_FS_MYSELF_DIR=
+fi
+
+if [ -z $BL_FS_MYSELF_DIR_CANONICAL ]; then
+   BL_FS_MYSELF_DIR_CANONICAL=
+fi
+
 ### FUNCTIONS ##################################################################
 
-# nothing here
+# This is a substitute for 'readlink -f' which is missing on *BSD.
+# (hint: GNU coreutils provide 'greadlink -f' on *BSD)
+#
+# source: http://stackoverflow.com/questions/1055671/
+function bl_fs_readlink_f
+{
+   local file=$1
+
+   cd $(dirname $file)
+   file=$(basename $file)
+
+   while [ -L "$file" ]; do
+      file=$(readlink $file)
+      cd $(dirname $file)
+      file=$(basename $file)
+   done
+
+   local dir=$(pwd -P)
+
+   echo $dir/$file
+}
+
+function bl_fs_get_name
+{
+   local file=$1
+
+   case $(uname) in
+      Linux) echo $(readlink -f $file) ;;
+#       TODO maybe check for presence of 'greadlink' on non-Linux OS?
+          *) echo $(bl_fs_readlink_f $file) ;;
+   esac
+}
 
 ### RUN ########################################################################
 
+bl_dep_check_pgm dirname
+bl_dep_check_pgm readlink
+
 if $(bl_str_is_empty $BL_FS_MYSELF_NAME); then
    BL_FS_MYSELF_NAME=${0##*/}   # get everything after last slash
+fi
+
+if $(bl_str_is_empty $BL_FS_MYSELF_NAME_CANONICAL); then
+   BL_FS_MYSELF_NAME_CANONICAL=$(bl_fs_get_name $0)
+   BL_FS_MYSELF_NAME_CANONICAL=${BL_FS_MYSELF_NAME_CANONICAL##*/}
+fi
+
+if $(bl_str_is_empty $BL_FS_MYSELF_DIR); then
+   BL_FS_MYSELF_DIR=$(bl_fs_get_name $(dirname $0))
+fi
+
+if $(bl_str_is_empty $BL_FS_MYSELF_DIR_CANONICAL); then
+   BL_FS_MYSELF_DIR_CANONICAL=$(dirname $(bl_fs_get_name $0))
 fi

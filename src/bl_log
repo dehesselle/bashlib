@@ -17,11 +17,11 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_fs_base
-source $BL_SRC/bl_exit_base
-source $BL_SRC/bl_time
-source $BL_SRC/bl_release
-source $BL_SRC/bl_ui
+. $BL_SRC/bl_fs_base
+. $BL_SRC/bl_exit_base
+. $BL_SRC/bl_time
+. $BL_SRC/bl_release
+. $BL_SRC/bl_ui
 
 ### VARIABLES ##################################################################
 
@@ -29,12 +29,20 @@ if [ -z $BL_LOG_DEBUG_ENABLE ]; then
    BL_LOG_DEBUG_ENABLE=false
 fi
 
+if [ -z $BL_LOG_CANONICAL_ENABLE ]; then
+   BL_LOG_CANONICAL_ENABLE=false
+fi
+
 if [ -z $BL_LOG_DIR ]; then
    BL_LOG_DIR=/tmp
 fi
 
 if [ -z $BL_LOG_FILE_NAME ]; then
-   BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME.log
+   if $BL_LOG_CANONICAL_ENABLE; then
+      BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME_CANONICAL.log
+   else
+      BL_LOG_FILE_NAME=$BL_FS_MYSELF_NAME.log
+   fi
 fi
 
 if [ -z $BL_LOG_FILE ]; then

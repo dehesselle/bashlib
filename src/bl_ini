@@ -40,8 +40,16 @@ if [ -z $BL_INI_DIR ]; then
    BL_INI_DIR=$BL_FS_MYSELF_DIR
 fi
 
+if [ -z $BL_INI_CANONICAL_ENABLE ]; then
+   BL_INI_CANONICAL_ENABLE=false
+fi
+
 if [ -z $BL_INI_FILE_NAME ]; then
-   BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME.ini
+   if $BL_INI_CANONICAL_ENABLE; then
+      BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME_CANONICAL.ini
+   else
+      BL_INI_FILE_NAME=$BL_FS_MYSELF_NAME.ini
+   fi
 fi
 
 if [ -z $BL_INI_FILE ]; then
