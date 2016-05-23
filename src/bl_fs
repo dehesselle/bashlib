@@ -17,10 +17,11 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_fs_base
-source $BL_SRC/bl_time
-source $BL_SRC/bl_str
-source $BL_SRC/bl_log
+. $BL_SRC/bl_exit
+. $BL_SRC/bl_fs_base
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
+. $BL_SRC/bl_time
 
 ### VARIABLES ##################################################################
 
@@ -36,26 +37,49 @@ if [ -z $BL_FS_MYSELF_NAME_RESOLVED ]; then
    BL_FS_MYSELF_NAME_RESOLVED=
 fi
 
+### SETTINGS ###################################################################
+
+shopt -s expand_aliases   # enable alias expansion
+
 ### FUNCTIONS ##################################################################
 
-function bl_fs_new_tempfile
+function _bl_fs_new_temp
 {
-   local directory=$1
+   local create_dir=$1   # true/false
+   local target_dir=$2   # path
 
-   if $(bl_str_is_empty $directory); then
-      echo "$BL_FS_TMP_DIR/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
+   if $(bl_str_is_empty $target_dir); then
+      export TMPDIR=$BL_FS_TMP_DIR   # 'TMPDIR' is used by 'mktemp'
    else
-      echo "$directory/${BL_FS_MYSELF_NAME}_$(bl_time_get nano).tmp"
+      export TMPDIR=$target_dir      # 'TMPDIR' is used by 'mktemp'
+   fi
+
+   if $create_dir; then
+      local temp=$(mktemp -d -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get))
+   else
+      local temp=$(mktemp -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get))
+   fi
+
+   local rc=$?
+
+   if [ $rc -eq 0 ]; then   # successfully created new (unique) tempfile?
+#     yes: this is supposed to happen every time
+      echo $temp
+   else
+#     no: we need to force-quit immediately
+      bl_exit_now
    fi
 }
+
+alias bl_fs_new_tempfile='_bl_fs_new_temp false'
+alias bl_fs_new_tempdir='_bl_fs_new_temp true'
 
 function bl_fs_get_name
 {
    local file=$1
 
-
    case $(uname) in
-      Linux) echo $(readlink -f $file  )    ;;
+      Linux) echo $(readlink -f $file) ;;
 #       TODO maybe check for presence of 'greadlink' on non-Linux OS?
           *) echo $(bl_fs_readlink_f $file) ;;
    esac
@@ -250,6 +274,7 @@ bl_dep_check_pgm cat
 bl_dep_check_pgm dirname
 bl_dep_check_pgm find
 #bl_dep_check md5sum
+bl_dep_check_pgm mktemp
 bl_dep_check_pgm pwd
 bl_dep_check_pgm readlink
 bl_dep_check_pgm sort
@@ -258,15 +283,15 @@ bl_dep_check_pgm tail
 bl_dep_check_pgm wc
 
 if $(bl_str_is_empty $BL_FS_MYSELF_DIR); then
-   BL_FS_MYSELF_DIR=$(readlink -f $(dirname $0))
+   BL_FS_MYSELF_DIR=$(bl_fs_get_name $(dirname $0))
 fi
 
 if $(bl_str_is_empty $BL_FS_MYSELF_DIR_RESOLVED); then
-   BL_FS_MYSELF_DIR_RESOLVED=$(dirname $(readlink -f $0))
+   BL_FS_MYSELF_DIR_RESOLVED=$(dirname $(bl_fs_get_name $0))
 fi
 
 if $(bl_str_is_empty $BL_FS_MYSELF_NAME_RESOLVED); then
-   BL_FS_MYSELF_NAME_RESOLVED=$(readlink -f $0)
+   BL_FS_MYSELF_NAME_RESOLVED=$(bl_fs_get_name $0)
    BL_FS_MYSELF_NAME_RESOLVED=${BL_FS_MYSELF_NAME_RESOLVED##*/}
 fi
 
