@@ -36,7 +36,5 @@ fi
 ### RUN ########################################################################
 
 if $(bl_str_is_empty $BL_FS_MYSELF_NAME); then
-#  FIXME potentially dangerous if there are more than 99 slashes
-#  better replace this with bash's string substitution 
-   BL_FS_MYSELF_NAME=$(bl_str_get_part $0 / 99)   # get part after last slash
+   BL_FS_MYSELF_NAME=${0##*/}   # get everything after last slash
 fi
