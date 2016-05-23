@@ -31,20 +31,25 @@ shopt -s expand_aliases
 
 function _bl_run
 {
-   local func=$1
-   local log_level=$2
-   local log_msg=$3
-   local cmd=${*:4}   # arguments 4...n
+   local func=$1           # name of the function
+   local log_level=$2      # log level
+   local log_redirect=$3   # redirect output to log true/false
+   local log_msg=$4        # description of what the command does
+   local cmd=${*:5}        # arguments 5...n
 
 #  Think of this as "annotated execution", i.e. giving a description of
 #  what is going to happen alongside with the actual command to do it.
-#  We're also not using the "bl_log_X" convenience functions so we can
-#  customize the log message.
+#  We're also not using the "bl_log_X" functions so we can customize the
+#  log message.
    bl_log_write "[bl_run:$func]" false $BL_LOG_FILE $log_level $log_msg
    bl_log_write "[>]" false $BL_LOG_FILE $log_level $cmd
 
-#  Redirection of stdout and stderr can be overridden inside of '$cmd'.
-   eval $cmd 1>>$BL_LOG_FILE 2>&1
+   if $log_redirect; then
+#     Redirection of stdout/stderr can still be overridden inside of '$cmd'.
+      eval $cmd 1>>$BL_LOG_FILE 2>&1
+   else
+      eval $cmd
+   fi
 
    local rc=$?
 
@@ -53,8 +58,16 @@ function _bl_run
    return $rc
 }
 
-alias bl_run_i='_bl_run "$FUNCNAME" I'
+# 'bl_run_i' and 'bl_run_ii' are purposefully named like their logging-only
+# counterparts 'bl_log_i' and 'bl_log_ii'.
+# The second "i" is supposed to indicate that stdout/stderr are going to
+# be written to.
 
+alias bl_run_i='_bl_run "$FUNCNAME" I true'
+alias bl_run_ii='_bl_run "$FUNCNAME" I false'   # no stdout/stderr redirection
+
+# FIXME deprecated - left here for backwards compatibility
+# will be removed soon!
 function bl_run
 {
    local cmd="$*"
@@ -70,6 +83,8 @@ function bl_run
    return $rc
 }
 
+# FIXME deprecated
+# this will be the future 'bl_run' function
 function bl_run_nolog
 {
    local cmd="$*"

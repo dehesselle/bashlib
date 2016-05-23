@@ -47,12 +47,12 @@ function bl_run_restart_as
 
          case $(uname) in
             Linux)
-               bl_run_i "restarting as '$user'" \
+               bl_run_ii "restarting as '$user'" \
 su -c "\"$BL_RUN_MYSELF ${BL_RUN_CMD_ARGS[@]}\"" - $user
                local rc=$?
                ;;
             FreeBSD)
-               bl_run_i "restarting as '$user'" \
+               bl_run_ii "restarting as '$user'" \
 su -m $user -c "\"$BL_RUN_MYSELF ${BL_RUN_CMD_ARGS[@]}\""
                local rc=$?
                ;;
