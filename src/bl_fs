@@ -182,6 +182,7 @@ function bl_fs_get_lines
 #   echo ${md5:1:32}
 #}
 
+# TODO: better name 'bl_fs_keep_first'/'bl_fs_keep_last'?
 function bl_fs_keep_recent
 {
    local file_pattern=$1
