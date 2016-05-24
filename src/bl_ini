@@ -142,7 +142,7 @@ function bl_ini_get
       if $(bl_str_is_empty $value); then
          bl_log_e "missing value: $section_key"
       else
-         echo $value
+         echo "$value"
       fi
    else
       bl_log_e "invalid argument: $section_key"
