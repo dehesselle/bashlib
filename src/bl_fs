@@ -38,16 +38,20 @@ function _bl_fs_new_temp
    local create_dir=$1   # true/false
    local target_dir=$2   # path
 
+#  use 'TMPDIR' for backwards compatiblity
    if $(bl_str_is_empty $target_dir); then
-      export TMPDIR=$BL_FS_TMP_DIR   # 'TMPDIR' is used by 'mktemp'
+      export TMPDIR=$BL_FS_TMP_DIR
    else
-      export TMPDIR=$target_dir      # 'TMPDIR' is used by 'mktemp'
+      export TMPDIR=$target_dir
    fi
 
+#  TODO OSX's 'mktemp' behaves differently and does not replace the 'XXXXXX'
+#  in conjunction with '-t'
+
    if $create_dir; then
-      local temp=$(mktemp -d -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get))
+      local temp=$(mktemp -d -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get).XXXXXX)
    else
-      local temp=$(mktemp -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get))
+      local temp=$(mktemp -t $BL_FS_MYSELF_NAME.$$.$(bl_time_get).XXXXXX)
    fi
 
    local rc=$?
