@@ -40,6 +40,10 @@ if [ -z $BL_INI_DIR ]; then
    BL_INI_DIR=$BL_FS_MYSELF_DIR
 fi
 
+if [ -z $BL_INI_AUTOREAD_ENABLE ]; then
+   BL_INI_AUTOREAD_ENABLE=true
+fi
+
 if [ -z $BL_INI_CANONICAL_ENABLE ]; then
    BL_INI_CANONICAL_ENABLE=false
 fi
@@ -273,9 +277,10 @@ function bl_ini_write
 
 ### RUN ########################################################################
 
-# automatically read the INI file
-if [ -f $BL_INI_FILE ]; then
-   bl_ini_read $BL_INI_FILE
-else
-   bl_log_w "settings not found: $BL_INI_FILE"
+if $BL_INI_AUTOREAD_ENABLE; then   # automatically read the INI file
+   if [ -f $BL_INI_FILE ]; then
+      bl_ini_read $BL_INI_FILE
+   else
+      bl_log_w "settings not found: $BL_INI_FILE"
+   fi
 fi
