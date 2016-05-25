@@ -17,11 +17,11 @@ fi
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_log
-source $BL_SRC/bl_str
-source $BL_SRC/bl_ini
-source $BL_SRC/bl_fs
-source $BL_SRC/bl_run_base
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
+. $BL_SRC/bl_ini
+. $BL_SRC/bl_fs
+. $BL_SRC/bl_run_base
 
 ### VARIABLES ##################################################################
 
@@ -261,6 +261,11 @@ function bl_sas_compare
 {
    local file1=$1
    local file2=$2
+   local sas_exec=$3
+
+   if $(bl_str_is_empty $sas_exec); then
+      sas_exec=bl_sas_exec_base
+   fi
 
    local pgm=$(bl_fs_new_tempfile)
 
@@ -278,7 +283,7 @@ run;\n\
 
    local log=$(bl_fs_new_tempfile)
 
-   bl_sas_exec_base_u8 $pgm $log
+   $sas_exec $pgm $log
 
    #bl_exit_on_rc
 
