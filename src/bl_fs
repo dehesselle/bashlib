@@ -182,7 +182,9 @@ function bl_fs_is_dir_writable
    if [ -d $directory ]; then
       local file=$(bl_fs_new_tempfile $directory)
 
-      bl_fs_is_file_writable $file
+      local is_writable=$(bl_fs_is_file_writable $file)
+      rm $file
+      echo $is_writable
 
 #     Do we really need to be that exhaustive?
 #

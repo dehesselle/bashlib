@@ -100,5 +100,8 @@ if $(bl_str_is_empty $BL_FS_MYSELF_DIR_CANONICAL); then
 fi
 
 if $(bl_str_is_empty $BL_FS_TMP_DIR); then
-   BL_FS_TMP_DIR=$(dirname $(mktemp))   # use 'mktemp' to detect temp directory
+#  use 'mktemp' to detect temporary directory
+   BL_FS_TMP_DIR=$(mktemp)
+   rm $BL_FS_TMP_DIR
+   BL_FS_TMP_DIR=$(dirname $BL_FS_TMP_DIR)
 fi
