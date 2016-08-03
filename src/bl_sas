@@ -172,8 +172,7 @@ function bl_sas_export_object
 #   fi
 
    local pkg_name=$meta_type
-   local target_dir=$(bl_fs_new_tempfile)
-   mkdir $target_dir 1>>$BL_LOG_FILE 2>&1
+   local target_dir=$(bl_fs_new_tempdir)
 
    local cmd=$target_dir/E_$pkg_name.sh
 
