@@ -1,0 +1,123 @@
+################################################################################
+#                                                                              #
+#   bl_kvs:  key-value store                                                   #
+#                                                                              #
+#   TODO: documentation/comments                                               #
+#                                                                              #
+#   https://github.com/dehesselle/bashlib                                      *
+#                                                                              #
+################################################################################
+
+[ -z $BL_KVS_INCLUDED ] && BL_KVS_INCLUDED=true || return
+
+### INCLUDES ###################################################################
+
+. $BL_SRC/bl_dep
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
+
+### VARIABLES ##################################################################
+
+declare -A BL_KVS_DATA     # a key-value pair; key must be "branch.leaf"
+
+BL_KVS_BRANCH_REGEX=[A-Za-z0-9_]+
+BL_KVS_LEAF_REGEX=[A-Za-z]{1}[A-Za-z0-9_]*
+
+### FUNCTIONS ##################################################################
+
+function bl_kvs_key_get_part
+{
+   local type=$1
+   local key=$2
+   local result
+
+   case $type in
+      branch)
+         local index=1
+         ;;
+      leaf)
+         local index=2
+         ;;
+      *)
+         local index=0
+         bl_log_e "invalid type: $type"
+         ;;
+   esac
+
+   if [ $index -gt 0 ]; then
+      if [[ $key =~ ^(${BL_KVS_BRANCH_REGEX})\.(${BL_KVS_LEAF_REGEX})$ ]]; then
+         result=${BASH_REMATCH[$index]}
+      else
+         bl_log_e "invalid key: $key"
+      fi
+   fi
+
+   echo $result
+}
+
+function bl_kvs_key_is_valid
+{
+   local key=$1
+   local branch=$(bl_kvs_key_get_part branch $key)
+
+   $(bl_str_is_empty $branch) && echo false || echo true
+}
+
+function bl_kvs_key_exists
+{
+   local key=$1
+   local found=false
+
+   for i in "${!BL_KVS_DATA[@]}"; do
+      if [ "$key" = "$i" ]; then
+         found=true
+         break
+      fi
+   done
+
+   echo $found
+}
+
+# bl_kvs_get {branch.key}
+#
+# branch.leaf      branch and leaf ...TODO
+# value           ...
+#
+function bl_kvs_get
+{
+   local key=$1   # syntax is "branch.leaf"
+   local value
+
+   if $(bl_kvs_key_is_valid $key); then
+      value=${BL_KVS_DATA[$key]}
+
+      if $(bl_str_is_empty $value); then
+         ! $(bl_kvs_key_exists $key) && bl_log_e "key not found: $key"
+      fi
+   else
+      bl_log_e "invalid key: $key"
+   fi
+
+   echo $value
+}
+
+# bl_ini_set {section.key} {value}
+#
+# section.key     section and key to assign a value to, separated by a dot
+# value           the value to be assigned to the key
+#
+function bl_kvs_set
+{
+   local key=$1
+   local value="$2"
+
+   if $(bl_kvs_key_is_valid $key); then
+      BL_KVS_DATA[$key]="$value"
+   else
+      bl_log_e "invalid key: $key"
+   fi
+}
+
+### RUN ########################################################################
+
+# nothing here

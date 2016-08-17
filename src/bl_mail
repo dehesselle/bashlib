@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_MAIL_INCLUDED ]; then
-   BL_MAIL_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_MAIL_INCLUDED ] && BL_MAIL_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -21,9 +17,7 @@ source $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
 
-if [ -z BL_MAIL_SMTP ]; then
-   BL_MAIL_SMTP=
-fi
+[ -z BL_MAIL_SMTP ] && BL_MAIL_SMTP=
 
 ### FUNCTIONS ##################################################################
 
@@ -42,9 +36,7 @@ function bl_mail_send
       local mail_smtp
    fi
 
-   if ! $(bl_str_is_empty $mail_att); then
-      mail_att="-a $mail_att"
-   fi
+   ! $(bl_str_is_empty $mail_att) && mail_att="-a $mail_att"
 
 #  Some variants of "heirloom mailx" turn the message body into an attachment
 #  if they encounter characters (e.g. German Umlauts) that they can't handle.

@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_UI_INCLUDED ]; then
-   BL_UI_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_UI_INCLUDED ] && BL_UI_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -59,6 +55,7 @@ function bl_ui_read_pw
       if [ -z $char ]; then   # "nothing" equals <enter>
          echo
          break;
+#TODO        ^^^ why is there a semicolon?
       fi
 
       if [ $char = $'\b' ]; then   # backspace?

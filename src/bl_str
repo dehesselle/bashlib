@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_STR_INCLUDED ]; then
-   BL_STR_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_STR_INCLUDED ] && BL_STR_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -41,11 +37,7 @@ function bl_str_is_empty
 {
    local string=$1
     
-   if [ ${#string} -eq 0 ]; then
-      echo true
-   else
-      echo false
-   fi
+   [ ${#string} -eq 0 ] && echo true || echo false
 }
 
 function bl_str_mask_after
@@ -65,9 +57,7 @@ function bl_str_mask_after
 function bl_str_brackets
 {
    local string=$1
-   if [ ${#string} -ne 0 ]; then
-      echo "[$string]"
-   fi
+   [ ${#string} -ne 0 ] && echo "[$string]"
 }
 
 function bl_str_get_part
@@ -89,15 +79,11 @@ function bl_str_get_part
          startPos=$((i+1))
          count=$((count+1))
 
-         if [ $count -eq $partNo ]; then
-            break
-         fi
+         [ $count -eq $partNo ] && break
       fi
    done
 
-   if [ $count -ne $partNo ]; then
-      stringPart=${string:startPos}
-   fi
+   [ $count -ne $partNo ] && stringPart=${string:startPos}
 
    echo $stringPart
 }

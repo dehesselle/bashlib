@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_SAS_INCLUDED ]; then
-   BL_SAS_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_SAS_INCLUDED ] && BL_SAS_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -25,26 +21,15 @@ fi
 
 ### VARIABLES ##################################################################
 
-if [ -z $BL_SAS_HOME ]; then
-   BL_SAS_HOME=/opt/sas
-fi
+[ -z $BL_SAS_HOME ] && BL_SAS_HOME=/opt/sas
 
-if [ -z $BL_SAS_VERSION ]; then
-   BL_SAS_VERSION=9.4
-fi
+[ -z $BL_SAS_VERSION ] && BL_SAS_VERSION=9.4
 
-if [ -z $BL_SAS_ROOT ]; then
-   BL_SAS_ROOT=$BL_SAS_HOME/SASFoundation/$BL_SAS_VERSION
-fi
+[ -z $BL_SAS_ROOT ] && BL_SAS_ROOT=$BL_SAS_HOME/SASFoundation/$BL_SAS_VERSION
 
-if [ -z $BL_SAS_CONFIG ]; then
-#  there's no way to guess a sane default
-   BL_SAS_CONFIG=
-fi
+[ -z $BL_SAS_CONFIG ] && BL_SAS_CONFIG=   # no way to guess sane default
 
-if [ -z $BL_SAS_APPCONTEXT ]; then
-   BL_SAS_APPCONTEXT=SASApp
-fi
+[ -z $BL_SAS_APPCONTEXT ] && BL_SAS_APPCONTEXT=SASApp
 
 ### FUNCTIONS ##################################################################
 
@@ -219,9 +204,7 @@ function bl_sas_import_package
    local pkg_name=$4
    local options=$5   # optional: custom options for ImportPackage
 
-   if $(bl_str_is_empty $pkg_name); then
-      pkg_name=$meta_type
-   fi
+   $(bl_str_is_empty $pkg_name) && pkg_name=$meta_type
 
    local cmd=$source_dir/I_$pkg_name.sh
 

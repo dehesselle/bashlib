@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_DEP_INCLUDED ]; then
-   BL_DEP_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_DEP_INCLUDED ] && BL_DEP_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
@@ -61,9 +57,7 @@ bl_dep_check_pgm()
                :    # ok!
             else
                echo "[bl_dep_check] compatibility check failed: $program"
-               if [ ${#test_hint} -gt 0 ]; then
-                  echo "[bl_dep_check] hint: $test_hint"
-               fi
+               [ ${#test_hint} -gt 0 ] && echo "[bl_dep_check] hint: $test_hint"
                exit 1
             fi
          fi

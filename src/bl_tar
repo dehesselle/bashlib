@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_TAR_INCLUDED ]; then
-   BL_TAR_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_TAR_INCLUDED ] && BL_TAR_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 

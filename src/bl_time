@@ -8,11 +8,7 @@
 #                                                                              #
 ################################################################################
 
-if [ -z $BL_TIME_INCLUDED ]; then
-   BL_TIME_INCLUDED=true
-else
-   return
-fi
+[ -z $BL_TIME_INCLUDED ] && BL_TIME_INCLUDED=true || return
 
 ### INCLUDES ###################################################################
 
