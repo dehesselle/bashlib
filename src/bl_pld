@@ -29,6 +29,10 @@ BL_PLD_HEADER_REGEX="([0-9]+):###PAYLOAD([0-9]+)###"
 declare -a BL_PLD_BEGIN   # a payload's first line no.
 declare -a BL_PLD_END     # a payload's last line no.
 
+### SETTINGS ###################################################################
+
+shopt -s expand_aliases   # enable alias expansion
+
 ### FUNCTIONS ##################################################################
 
 # bl_pld_find <file>
@@ -71,7 +75,7 @@ function bl_pld_find
    [ $index -eq 0 ] && bl_log_i "no payload found" || bl_log_i "payload found"
 }
 
-# bl_pld_extract <payload> <target> <source>
+# bl_pld_extract_raw <payload> <target> <source>
 #
 # payload     the number of the payload to extract
 # target      the file that the extracted payload is written to
@@ -81,7 +85,7 @@ function bl_pld_find
 # It reads the number of the first and last line of a payload from the
 # 'BL_PLD_BEGIN' and 'BL_PLD_END' arrays.
 #
-function bl_pld_extract
+function bl_pld_extract_raw
 {
    local payload_no=$1
    local file_target=$2
@@ -97,7 +101,34 @@ function bl_pld_extract
 $file_source >> $file_target
 }
 
+function bl_pld_extract_envsubst
+{
+   local payload_no=$1
+   local file_target=$2
+   local file_source=$3
+
+   local file_intermediate=$(bl_fs_new_tempfile)
+
+   bl_pld_extract_raw $payload_no $file_intermediate $file_source
+
+   which envsubst 1>/dev/null 2>&1
+   local rc=$?
+
+   if [ $rc -eq 0 ]; then
+      envsubst < $file_intermediate > $file_target
+      rm $file_intermediate
+   else
+      bl_log_e "unresolved dependency or not in path: envsubst"
+      mv $file_intermediate $file_target
+   fi
+}
+
+alias bl_pld_extract='bl_pld_extract_raw'
+
 ### RUN ########################################################################
+
+#TODO how to handle optional dependencies... (see bl_pld_extract_envsubst)
+#bl_dep_check_pgm envsubst
 
 bl_dep_check_pgm sed
 bl_dep_check_pgm wc
