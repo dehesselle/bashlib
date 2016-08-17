@@ -115,6 +115,10 @@ function bl_pld_extract_envsubst
    local rc=$?
 
    if [ $rc -eq 0 ]; then
+#     export all environment variables so they are available to envsubst
+#     http://unix.stackexchange.com/questions/79068
+      $(echo "export" $((set -o posix ; set)|\
+awk -F "=" 'BEGIN{ORS=" "}1 $1~/[a-zA-Z]/ {print $1}'))
       envsubst < $file_intermediate > $file_target
       rm $file_intermediate
    else
