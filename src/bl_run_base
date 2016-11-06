@@ -37,8 +37,9 @@ function _bl_run
 #  what is going to happen alongside with the actual command to do it.
 #  We're also not using the "bl_log_X" functions so we can customize the
 #  log message.
-   bl_log_write "[bl_run:$func]" false $BL_LOG_FILE $log_level $log_msg
-   bl_log_write "[>]" false $BL_LOG_FILE $log_level $cmd
+   bl_log_write "[bl_run<$func]" [] 2 $BL_LOG_FILE $log_level $log_msg
+   bl_log_write "[>]" [] 2 $BL_LOG_FILE $log_level $cmd
+
 
    if $log_redirect; then
 #     Redirection of stdout/stderr can still be overridden inside of '$cmd'.

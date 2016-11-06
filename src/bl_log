@@ -71,60 +71,62 @@ function bl_log_level_to_str
 # enable alias expansion
 shopt -s expand_aliases
 
-# bl_log_write <function> <echo> <file> <level> <message>
+# bl_log_write <function> <source> <mode> <target> <level> <message>
 #
-# function     name of the function that is logging
-# echo         write to stdout {true|false}
-# file         file to write message to
+# function     name of the function that is logging; needs to be
+#              enclosed in square brackets, e.g. "[myfunction]"
+# source       name of the source file that is logging; needs to be
+#              enclosed in square brackets, e.g. "[myfile]"
+# mode         write to stdout, file or both {1|2|3}
+# target       file to write message to
 # level        log level {D|I|W|E}
 # message      the message you want to log
 #
 function bl_log_write
 {
-#   local pid=$$
-#   if [ $$ -ne $BASHPID ]; then
-#      local pid="$pid|$BASHPID"   # for subshells: parent|child
-#   fi
-
-#  log format is "<timestamp> <level> <pid> [<function name>] <message>", e.g.
+#
+#  log format is "<timestamp> <level> <pid> {<function>|<file>} <message>", e.g.
 #
 #  20150228-131012 I 1234 [myFunc] This is just an example.
 #
-   if [ "${1:0:1}" = "[" ]; then   # Is there a function name?
-   
-      if [ "${1:1:1}" = "]" ]; then   # Function name empty?
-         if $2; then
-            echo -e "$(bl_log_level_to_str $4) ${*:5}"
-            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_col_remove ${*:5})" >> $3
-         else
-            echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
-         fi
+   if [ "${1:1:1}" = "]" ]; then   # function name empty?
+      if [ "${2:1:1}" = "]" ]; then   # file name empty?
+         local source=
       else
-         if $2; then
-            echo -e "$(bl_log_level_to_str $4) $1 ${*:5}"
-            echo "$(bl_time_get log) $4 $$ $1 $(bl_ui_col_remove ${*:5})" >> $3
-         else
-            echo "$(bl_time_get log) $4 $$ $1 ${*:5}" >> $3
-         fi
+         local source=" $2 "
       fi
    else
-      if $1; then
-         echo -e "$(bl_log_level_to_str $3) ${*:4}"
-         echo "$(bl_time_get log) $3 $$ $(bl_ui_col_remove ${*:4})" >> $2
-      else
-         echo "$(bl_time_get log) $3 $$ ${*:4}" >> $2
-      fi
+      local source=" $1 "
    fi
+
+   local mode=$3
+   local target=$4
+   local level=$5
+   local message="${*:6}"
+
+   local rc=0
+
+   if [ $mode -eq 3 ] || [ $mode -eq 1 ]; then
+      echo -e "$(bl_log_level_to_str $level) $message"
+   fi
+
+   if [ $mode -eq 3 ] || [ $mode -eq 2 ]; then
+      echo "$(bl_time_get log) $level $$$source$(bl_ui_col_remove $message)" \
+>>$target
+      rc=$?
+   fi
+
+   return $rc
 }
 
-alias bl_log_d='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE D'
-alias bl_log_i='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE I'
-alias bl_log_w='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE W'
-alias bl_log_e='bl_log_write "[${FUNCNAME%.*}]" false $BL_LOG_FILE E'
-alias bl_log_dd='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE D'
-alias bl_log_ii='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE I'
-alias bl_log_ww='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE W'
-alias bl_log_ee='bl_log_write "[${FUNCNAME%.*}]" true $BL_LOG_FILE E'
+alias bl_log_d='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 2 $BL_LOG_FILE D'
+alias bl_log_i='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 2 $BL_LOG_FILE I'
+alias bl_log_w='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 2 $BL_LOG_FILE W'
+alias bl_log_e='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 2 $BL_LOG_FILE E'
+alias bl_log_dd='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 3 $BL_LOG_FILE D'
+alias bl_log_ii='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 3 $BL_LOG_FILE I'
+alias bl_log_ww='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 3 $BL_LOG_FILE W'
+alias bl_log_ee='bl_log_write "[${FUNCNAME%.*}]" "[${BASH_SOURCE##*/}]" 3 $BL_LOG_FILE E'
 
 function bl_log_on_exit
 {
@@ -132,35 +134,41 @@ function bl_log_on_exit
 #  name being printed in the log. The "end of log"/last message in the
 #  log is supposed to look like the "begin of log"/first message.
 #  See the "RUN" section below.
-   bl_log_write false $BL_LOG_FILE I "****END**** $BL_RELEASE_VERSION, \
-$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, $BL_LOG_USER"
+   bl_log_write [] [] 2 $BL_LOG_FILE I \
+"****END**** $BL_RELEASE_VERSION, $BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, \
+$BL_LOG_USER"
 }
 
 ### RUN ########################################################################
 
+bl_dep_check_pgm touch
 bl_dep_check_pgm whoami
 
-echo "$(bl_time_get log) I $$ ***BEGIN*** $BL_RELEASE_VERSION, \
-$BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, $BL_LOG_USER" >> $BL_LOG_FILE
+touch $BL_LOG_FILE 1>/dev/null 2>&1
 
-if [ $? -eq 0 ]; then
+[ $? -eq 0 ] && bl_log_write [] [] 2 $BL_LOG_FILE I \
+"***BEGIN*** $BL_RELEASE_VERSION, $BL_FS_MYSELF_DIR/$BL_FS_MYSELF_NAME, \
+$BL_LOG_USER"
+
+if [ $? -eq 0 ]; then   # logfile writable?
    bl_exit_func_add_back bl_log_on_exit   # "end of log" as last message
 
    if ! $BL_LOG_DEBUG_ENABLE; then
-#     Disable all debug logging by turning statements into NOOPs.
+#     disable all debug logging by turning statements into NOOPs
       alias bl_log_d=': '
       alias bl_log_dd=': '
    fi
 else   # logfile not writable
-   echo "$(bl_time_get log) E [$BL_FS_MYSELF_NAME] logging disabled, \
+   bl_log_write [] [$BASH_SOURCE] 1 $BL_LOG_FILE E "logfile disabled, \
 not writable: $BL_LOG_FILE"
-#  Disable logging to file by turning statements into NOOPs or 'echo'.
+
+#  disable logging to file
    alias bl_log_d=': '
    alias bl_log_i=': '
    alias bl_log_w=': '
    alias bl_log_e=': '
-   alias bl_log_dd='echo '
-   alias bl_log_ii='echo '
-   alias bl_log_ww='echo '
-   alias bl_log_ee='echo '
+   alias bl_log_dd='bl_log_write "[]" "[]" 1 $BL_LOG_FILE D'
+   alias bl_log_ii='bl_log_write "[]" "[]" 1 $BL_LOG_FILE I'
+   alias bl_log_ww='bl_log_write "[]" "[]" 1 $BL_LOG_FILE W'
+   alias bl_log_ee='bl_log_write "[]" "[]" 1 $BL_LOG_FILE E'
 fi
