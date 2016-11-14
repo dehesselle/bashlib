@@ -13,10 +13,10 @@
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_run_base
-source $BL_SRC/bl_fs
-source $BL_SRC/bl_log
-source $BL_SRC/bl_str
+. $BL_SRC/bl_run_base
+. $BL_SRC/bl_fs
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
 

@@ -13,7 +13,8 @@
 ### INCLUDES ###################################################################
 
 . $BL_SRC/bl_dep
-source $BL_SRC/bl_log
+. $BL_SRC/bl_log
+. $BL_SRC/bl_str
 
 ### VARIABLES ##################################################################
 
@@ -33,12 +34,16 @@ function _bl_run
    local log_msg=$4        # description of what the command does
    local cmd=${*:5}        # arguments 5...n
 
+   if $(bl_str_is_empty $func); then   # invoked outside of a function
+      func="${BASH_SOURCE##*/}"          # name of source file
+   fi
+
 #  Think of this as "annotated execution", i.e. giving a description of
 #  what is going to happen alongside with the actual command to do it.
 #  We're also not using the "bl_log_X" functions so we can customize the
 #  log message.
    bl_log_write "[bl_run<$func]" [] 2 $BL_LOG_FILE $log_level $log_msg
-   bl_log_write "[>]" [] 2 $BL_LOG_FILE $log_level $cmd
+   bl_log_write " |  " [] 2 $BL_LOG_FILE $log_level $cmd
 
 
    if $log_redirect; then
@@ -50,52 +55,21 @@ function _bl_run
 
    local rc=$?
 
-   bl_log_d "rc: $rc"
+   bl_log_write " |  " [] 2 $BL_LOG_FILE $log_level "rc = $rc"
+#   bl_log_d "rc: $rc"
 
    return $rc
 }
 
-# 'bl_run_i' and 'bl_run_ii' are purposefully named like their logging-only
+# 'bl_run_i' and 'bl_run_ii' are purposefully named like their logging
 # counterparts 'bl_log_i' and 'bl_log_ii'.
 # The second "i" is supposed to indicate that stdout/stderr are going to
 # be written to.
 
 alias bl_run_i='_bl_run "$FUNCNAME" I true'
-alias bl_run_ii='_bl_run "$FUNCNAME" I false'   # no stdout/stderr redirection
-
-# FIXME deprecated - left here for backwards compatibility
-# will be removed soon!
-function bl_run
-{
-   local cmd="$*"
-
-   bl_log_i $cmd
-
-   $cmd 1>>$BL_LOG_FILE 2>&1
-
-   local rc=$?
-
-   bl_log_d "rc: $rc"
-
-   return $rc
-}
-
-# FIXME deprecated
-# this will be the future 'bl_run' function
-function bl_run_nolog
-{
-   local cmd="$*"
-
-   bl_log_i $cmd
-
-   $cmd
-
-   local rc=$?
-
-   bl_log_d "rc: $rc"
-
-   return $rc
-}
+alias bl_run_ii='_bl_run "$FUNCNAME" I false'   # no stdout/stderr redirection,
+                                                # i.e. output will go to console
+alias bl_run='_bl_run "$FUNCNAME" I true "(no description given)"'
 
 ### RUN ########################################################################
 
