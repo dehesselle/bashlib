@@ -107,7 +107,7 @@ function bl_pld_extract_envsubst
    local file_target=$2
    local file_source=$3
 
-   local file_intermediate=$(bl_fs_new_tempfile)
+   local file_intermediate=$(bl_fs_new_temp_file)
 
    bl_pld_extract_raw $payload_no $file_intermediate $file_source
 

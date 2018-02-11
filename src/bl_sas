@@ -157,7 +157,7 @@ function bl_sas_export_object
 #   fi
 
    local pkg_name=$meta_type
-   local target_dir=$(bl_fs_new_tempdir)
+   local target_dir=$(bl_fs_new_temp_dir)
 
    local cmd=$target_dir/E_$pkg_name.sh
 
@@ -249,7 +249,7 @@ function bl_sas_compare
       sas_exec=bl_sas_exec_base
    fi
 
-   local pgm=$(bl_fs_new_tempfile)
+   local pgm=$(bl_fs_new_temp_file)
 
    echo -e "\
 libname lib1 \"$(bl_fs_get_dirname_fq $file1)\";\n\
@@ -263,7 +263,7 @@ run;\n\
 %put SYSINFO=&SYSINFO.;\n\
 " > $pgm
 
-   local log=$(bl_fs_new_tempfile)
+   local log=$(bl_fs_new_temp_file)
 
    $sas_exec $pgm $log
 

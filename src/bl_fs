@@ -61,8 +61,8 @@ function _bl_fs_new_temp
    fi
 }
 
-alias bl_fs_new_tempfile='_bl_fs_new_temp false'
-alias bl_fs_new_tempdir='_bl_fs_new_temp true'
+alias bl_fs_new_temp_file='_bl_fs_new_temp false'
+alias bl_fs_new_temp_dir='_bl_fs_new_temp true'
 
 function bl_fs_get_filename_fq
 {
@@ -166,7 +166,7 @@ function bl_fs_is_dir_writable
    local directory=$1
 
    if [ -d $directory ]; then
-      local file=$(bl_fs_new_tempfile $directory)
+      local file=$(bl_fs_new_temp_file $directory)
 
       local is_writable=$(bl_fs_is_file_writable $file)
       rm $file

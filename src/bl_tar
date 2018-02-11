@@ -79,7 +79,7 @@ function bl_tar_extract
    local echo_dir=false
 
    if $(bl_str_is_empty $dir); then
-      dir=$(bl_fs_new_tempfile)
+      dir=$(bl_fs_new_temp_file)
       mkdir -p $dir 1>>$BL_LOG_FILE 2>&1
       echo_dir=true
    fi
