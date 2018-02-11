@@ -23,6 +23,8 @@
 BL_DEP_VERSION_FILE=$BL_SRC/../version.nfo
 BL_DEP_VERSION=unknown   # will be set in 'RUN' section
 
+[ -z $BL_DEP_VERSION_REQUIRED ] && BL_DEP_VERSION_REQUIRED=unknown
+
 ### FUNCTIONS ##################################################################
 
 # Since we're going to check for the presence of bash (see 'RUN' below) we need
@@ -90,6 +92,34 @@ bl_dep_check_func()
    declare -F $1 &>/dev/null && echo true || echo false
 }
 
+bl_dep_check_version()
+{
+   local supported_versions=$1
+
+   local this_version=${BL_DEP_VERSION%%-*}   # cut off git commit info
+   local dot_count=${this_version//[^\\.]}
+         dot_count=${#dot_count}
+
+   if [ $dot_count -gt 1 ]; then
+      this_version=${this_version%.*}   # cut off minor version number
+   fi
+
+   local found=false
+
+   for version in ${supported_versions//,/ }; do
+      if [ "$version" = "$this_version" ]; then
+         found=true
+         break
+      fi
+   done
+
+   if $found; then
+      return 0
+   fi
+
+   return 1
+}
+
 ### RUN ########################################################################
 
 if   [ -z $BASH ]; then
@@ -113,6 +143,15 @@ fi
 
 if [ ! -e $BL_DEP_VERSION_FILE ]; then
    echo "[bl_dep] You need to checkout a specific version."
+   exit 1
 fi
 
 read -r BL_DEP_VERSION < $BL_DEP_VERSION_FILE   # read first line
+
+if [ "$BL_DEP_VERSION_REQUIRED" != "unknown" ]; then
+   bl_dep_check_version $BL_DEP_VERSION_REQUIRED
+   if [ $? -eq 1 ]; then
+      echo "[bl_dep] This script requires a different version of bashlib."
+      exit 1
+   fi
+fi
