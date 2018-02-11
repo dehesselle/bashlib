@@ -1,6 +1,6 @@
 ################################################################################
 #                                                                              #
-#   bl_dep:  bash library, dependency related functions                        #
+#   bl_dep:  bash library, dependency management functions                     #
 #                                                                              #
 #                                                                              #
 #                                                                              #
@@ -20,7 +20,8 @@
 
 ### VARIABLES ##################################################################
 
-# nothing here
+BL_DEP_VERSION_FILE=$BL_SRC/../version.nfo
+BL_DEP_VERSION=unknown   # will be set in 'RUN' section
 
 ### FUNCTIONS ##################################################################
 
@@ -28,12 +29,13 @@
 # to keep the function definitions posix-style here. The function body is not
 # required to be posix for e.g. 'sh' not to throw errors when reading this file.
 
-# Check if a required program can be found (through '$PATH') and is executable.
-# You can also supply a test command and an expected result, e.g. to check
-# for a specific version.
-# If the given program is not found, exit with rc 1.
 bl_dep_check_pgm()
 {
+   # Check if a required program can be found (through '$PATH') and is 
+   # executable. You can also supply a test command and an expected result,
+   # e.g. to check for a specific version of said program.
+   # If the given program is not found, exit with rc 1.
+
    local program=$1
    local test_command=$2   # optional: test command to be executed
    local test_result=$3    # a bash-style regex describing the expected result
@@ -70,7 +72,7 @@ bl_dep_check_pgm()
          echo "[bl_dep_check] syntax error"
          exit 1
          ;;
-      127)      # 'which' couldn't be run
+      127) # 'which' couldn't be run
          echo "[bl_dep_check] couldn't run 'which'"
          exit 1
          ;;
@@ -81,26 +83,11 @@ bl_dep_check_pgm()
    esac
 }
 
-# Check if a function with the given name already exists.
 bl_dep_check_func()
 {
+   # Check if a function with the given name already exists.
+
    declare -F $1 &>/dev/null && echo true || echo false
-}
-
-# TODO: this will most likely be deprecated very soon
-bl_dep_platform_func()
-{
-   local func_name=$1
-   local func_name_platform=$func_name.$(uname)
-
-   if   $(bl_dep_check_func $func_name_platform); then
-      $func_name_platform ${*:2}   # call platform specific function with args
-   elif $(bl_dep_check_func $func_name); then
-      $func_name ${*:2}   # meant for graceful error handling
-   else   # ungraceful error handling
-      echo "[bl_dep_platform_func] unsupported platform: $(uname)"
-      exit 1
-   fi
 }
 
 ### RUN ########################################################################
@@ -109,14 +96,23 @@ if   [ -z $BASH ]; then
    echo "[bl_dep] This scripts needs 'bash' to run."
    exit 1
 elif [ ! -z $POSIXLY_CORRECT ]; then
-#  '$POSIXLY_CORRECT' can happen if bash executes scripts that have
-#  the '#!/bin/sh' shebang, e.g. on system where bash is the only available
-#  shell
-   echo "[bl_dep] This script cannot run in bash's posix-only mode."
+   # POSIXLY_CORRECT can happen if bash executes scripts that have
+   # the '#!/bin/sh' shebang, e.g. on system where bash is the only available
+   # shell
+   echo "[bl_dep] This script cannot run posix-only mode."
    exit 1
 elif [ ${BASH_VERSINFO[0]} -lt 4 ]; then
-   echo "[bl_dep] This script needs at least version 4 of 'bash'."
+   echo "[bl_dep] This script needs at least bash version 4.x"
    exit 1
 fi
 
-bl_dep_check_pgm uname
+if [ -z $BL_SRC ]; then
+   echo "[bl_dep] You need to set BL_SRC."
+   exit 1
+fi
+
+if [ ! -e $BL_DEP_VERSION_FILE ]; then
+   echo "[bl_dep] You need to checkout a specific version."
+fi
+
+read -r BL_DEP_VERSION < $BL_DEP_VERSION_FILE   # read first line
