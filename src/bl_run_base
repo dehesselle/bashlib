@@ -42,7 +42,7 @@ function _bl_run
 #  what is going to happen alongside with the actual command to do it.
 #  We're also not using the "bl_log_X" functions so we can customize the
 #  log message.
-   bl_log_write "[bl_run<$func]" [] 2 $BL_LOG_FILE $log_level $log_msg
+   bl_log_write "[$func>bl_run]" [] 2 $BL_LOG_FILE $log_level $log_msg
    bl_log_write " |  " [] 2 $BL_LOG_FILE $log_level $cmd
 
 
