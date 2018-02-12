@@ -1,2 +1,2 @@
 echo $(git describe --always --tags) > $(git rev-parse --git-dir)/../version.nfo
-echo "# auto-generated file by post-checkout hook" >> $(git rev-parse --git-dir)/../version.nfo
+echo "# $(date) auto-generated file by post-checkout hook" >> $(git rev-parse --git-dir)/../version.nfo
